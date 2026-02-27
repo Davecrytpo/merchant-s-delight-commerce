@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 42 100% 50%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 42 80% 45%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 42 100% 50%;
+    --radius: 0.75rem;
+    --gold: 42 100% 50%;
+    --gold-light: 42 100% 65%;
+    --surface: 0 0% 9%;
+    --surface-hover: 0 0% 13%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  .glass-hover {
+    @apply hover:bg-white/10 transition-all duration-300;
+  }
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(42 100% 50%), hsl(42 100% 65%), hsl(42 100% 50%));
+  }
+  .gold-text {
+    background: linear-gradient(135deg, hsl(42 100% 50%), hsl(42 100% 70%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-shadow-lg {
+    text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .shimmer-bg {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: hsl(0 0% 7%); }
+::-webkit-scrollbar-thumb { background: hsl(0 0% 25%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(42 100% 50%); }
