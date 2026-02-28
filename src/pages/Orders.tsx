@@ -1,121 +1,77 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { Package, Truck, CheckCircle, Clock, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
+import { useOrders } from "@/hooks/useOrders";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Package, Truck, CheckCircle, Clock, XCircle, ShoppingBag } from "lucide-react";
-
-interface OrderRow {
-  id: string;
-  order_number: string;
-  status: string;
-  total: number;
-  items: any[];
-  created_at: string;
-  tracking_number: string | null;
-}
-
-const statusConfig: Record<string, { icon: any; color: string; bg: string }> = {
-  pending: { icon: Clock, color: "text-yellow-400", bg: "bg-yellow-400/10" },
-  processing: { icon: Package, color: "text-blue-400", bg: "bg-blue-400/10" },
-  shipped: { icon: Truck, color: "text-primary", bg: "bg-primary/10" },
-  delivered: { icon: CheckCircle, color: "text-green-400", bg: "bg-green-400/10" },
-  cancelled: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10" },
-};
+import { format } from "date-fns";
 
 export default function Orders() {
-  const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { data: orders, isLoading } = useOrders(user?.id);
 
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    const fetchOrders = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (data) setOrders(data as OrderRow[]);
-      setLoading(false);
-    };
-    fetchOrders();
-  }, [user]);
-
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center text-center">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-3">Sign In to View Orders</h1>
-          <Link to="/account" className="gold-gradient text-background font-semibold px-8 py-3 rounded-xl inline-block">Sign In</Link>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return <div className="min-h-screen flex items-center justify-center">Please login to view your orders.</div>;
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-3xl">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="font-display text-3xl font-bold">My <span className="gold-text">Orders</span></h1>
-        <p className="text-muted-foreground mt-1">Track and manage your orders</p>
-      </motion.div>
+    <div className="min-h-screen py-20">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex items-center gap-4 mb-10">
+          <Link to="/account" className="w-10 h-10 rounded-full glass flex items-center justify-center hover:text-primary transition-colors"><ArrowLeft className="w-5 h-5" /></Link>
+          <h1 className="font-display text-4xl font-bold">Your <span className="gold-text">Orders</span></h1>
+        </div>
 
-      {orders.length === 0 ? (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-          <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="font-display text-xl font-bold mb-2">No orders yet</h2>
-          <p className="text-muted-foreground mb-6">Start shopping to see your orders here</p>
-          <Link to="/shop" className="gold-gradient text-background font-semibold px-8 py-3 rounded-xl inline-block">
-            Browse Shoes
-          </Link>
-        </motion.div>
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order, i) => {
-            const config = statusConfig[order.status] || statusConfig.pending;
-            const StatusIcon = config.icon;
-            const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-            return (
-              <motion.div
-                key={order.id}
-                className="glass rounded-2xl p-5"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold">{order.order_number}</h3>
-                    <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()} · {itemCount} item{itemCount !== 1 ? "s" : ""}</p>
+        {isLoading ? (
+          <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>
+        ) : !orders || orders.length === 0 ? (
+          <div className="glass rounded-3xl p-12 text-center space-y-6">
+            <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto opacity-50"><Package className="w-10 h-10 text-background" /></div>
+            <h2 className="text-2xl font-bold">No orders yet</h2>
+            <p className="text-muted-foreground">You haven't placed any orders yet. Start shopping to see your history here!</p>
+            <Link to="/shop" className="gold-gradient text-background font-bold px-8 py-3 rounded-xl inline-block">Start Shopping</Link>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {orders.map((order: any, i) => (
+              <motion.div key={order.id} className="glass rounded-3xl overflow-hidden" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Order #{order.order_number}</p>
+                    <p className="text-sm">Placed on {format(new Date(order.created_at), "MMMM d, yyyy")}</p>
+                    <div className="flex items-center gap-2 mt-4">
+                      {order.status === "delivered" ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Clock className="w-4 h-4 text-primary" />}
+                      <span className={`text-xs font-bold uppercase tracking-tighter ${order.status === "delivered" ? "text-green-400" : "text-primary"}`}>
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${config.bg}`}>
-                    <StatusIcon className={`w-4 h-4 ${config.color}`} />
-                    <span className={`text-sm font-medium capitalize ${config.color}`}>{order.status}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">Total</p>
+                      <p className="text-2xl font-bold gold-text">${order.total.toFixed(2)}</p>
+                    </div>
+                    <Link to={`/track-order?id=${order.order_number}`} className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+                      <ChevronRight className="w-6 h-6" />
+                    </Link>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="text-sm text-muted-foreground">
-                    Total: <span className="text-foreground font-bold">${Number(order.total).toFixed(2)}</span>
+                <div className="bg-secondary/30 px-6 py-4 border-t border-border/50">
+                  <div className="flex -space-x-4">
+                    {order.items?.map((item: any, idx: number) => (
+                      <div key={idx} className="w-12 h-12 rounded-lg bg-card border border-border overflow-hidden ring-2 ring-background">
+                         <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">SHOE</div>
+                      </div>
+                    ))}
+                    {order.items?.length > 4 && (
+                      <div className="w-12 h-12 rounded-lg glass flex items-center justify-center text-xs font-bold ring-2 ring-background">
+                        +{order.items.length - 4}
+                      </div>
+                    )}
                   </div>
-                  {order.tracking_number && (
-                    <Link to={`/track-order?order=${order.order_number}`} className="text-sm text-primary hover:underline flex items-center gap-1">
-                      <Truck className="w-3.5 h-3.5" /> Track
-                    </Link>
-                  )}
                 </div>
               </motion.div>
-            );
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
