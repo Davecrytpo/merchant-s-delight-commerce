@@ -1,15 +1,33 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin, Send, Clock, MessageSquare } from "lucide-react";
+import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Message sent! We'll get back to you within 24 hours.");
-    setForm({ name: "", email: "", subject: "", message: "" });
+    if (!form.name || !form.email || !form.subject || !form.message) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("contact_messages").insert({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      subject: form.subject.trim(),
+      message: form.message.trim(),
+    });
+    if (error) {
+      toast.error("Failed to send message. Please try again.");
+    } else {
+      toast.success("Message sent! We'll get back to you within 24 hours.");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    }
+    setSubmitting(false);
   };
 
   const inputClass = "w-full bg-secondary rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary";
@@ -57,8 +75,8 @@ export default function Contact() {
         </div>
         <input className={inputClass} placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
         <textarea className={`${inputClass} min-h-[150px] resize-none`} placeholder="Your message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
-        <button type="submit" className="gold-gradient text-background font-semibold w-full py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90">
-          <Send className="w-4 h-4" /> Send Message
+        <button type="submit" disabled={submitting} className="gold-gradient text-background font-semibold w-full py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50">
+          <Send className="w-4 h-4" /> {submitting ? "Sending..." : "Send Message"}
         </button>
       </motion.form>
     </div>

@@ -1,7 +1,34 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Instagram, Twitter, Facebook, Youtube, Mail, MapPin, Phone } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !email.includes("@")) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+    setSubscribing(true);
+    const { error } = await supabase.from("newsletter_subscribers").insert({ email: email.trim().toLowerCase() });
+    if (error) {
+      if (error.code === "23505") {
+        toast.info("You're already subscribed!");
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+    } else {
+      toast.success("Subscribed! Welcome to the ShoeShop family 🎉");
+    }
+    setEmail("");
+    setSubscribing(false);
+  };
+
   return (
     <footer className="bg-card border-t border-border">
       {/* Newsletter */}
@@ -9,16 +36,19 @@ export default function Footer() {
         <div className="container mx-auto px-4 py-16 text-center">
           <h3 className="font-display text-3xl font-bold mb-3">Stay in the Loop</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">Get early access to new releases, exclusive deals, and style inspiration.</p>
-          <div className="flex max-w-md mx-auto gap-2">
+          <form onSubmit={handleSubscribe} className="flex max-w-md mx-auto gap-2">
             <input
               type="email"
               placeholder="Your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="flex-1 bg-secondary rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
+              required
             />
-            <button className="gold-gradient text-background font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity">
-              Subscribe
+            <button type="submit" disabled={subscribing} className="gold-gradient text-background font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              {subscribing ? "..." : "Subscribe"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
 
@@ -68,7 +98,6 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom */}
       <div className="border-t border-border">
         <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">© 2026 ShoeShop. All rights reserved.</p>
