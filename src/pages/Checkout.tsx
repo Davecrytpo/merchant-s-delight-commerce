@@ -1,18 +1,32 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 import { Check, CreditCard, Lock, Truck, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = ["Shipping", "Payment", "Review"];
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", phone: "",
-    address: "", city: "", state: "", zip: "", country: "US",
+    firstName: profile?.full_name?.split(" ")[0] || "",
+    lastName: profile?.full_name?.split(" ").slice(1).join(" ") || "",
+    email: user?.email || "",
+    phone: profile?.phone || "",
+    address: profile?.address_line1 || "",
+    city: profile?.city || "",
+    state: profile?.state || "",
+    zip: profile?.zip_code || "",
+    country: "US",
     cardNumber: "", cardExpiry: "", cardCvc: "", cardName: "",
   });
 
@@ -22,20 +36,114 @@ export default function Checkout() {
 
   const update = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = () => {
-    toast.success("Order placed successfully! 🎉");
-    clearCart();
+  const validateStep = (s: number): boolean => {
+    if (s === 0) {
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city || !formData.state || !formData.zip) {
+        toast.error("Please fill in all shipping fields");
+        return false;
+      }
+    }
+    if (s === 1) {
+      if (!formData.cardName || !formData.cardNumber || !formData.cardExpiry || !formData.cardCvc) {
+        toast.error("Please fill in all payment fields");
+        return false;
+      }
+    }
+    return true;
   };
+
+  const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Please sign in to place an order");
+      navigate("/account");
+      return;
+    }
+    setSubmitting(true);
+    const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    const orderItems = items.map((i) => ({
+      product_id: i.product.id,
+      product_name: i.product.name,
+      variant_size: i.variant.size,
+      variant_color: i.variant.color,
+      quantity: i.quantity,
+      price: i.variant.price,
+    }));
+
+    const { error } = await supabase.from("orders").insert({
+      user_id: user.id,
+      order_number: orderNum,
+      status: "pending",
+      items: orderItems,
+      subtotal: totalPrice,
+      shipping,
+      tax,
+      total,
+      shipping_address: {
+        name: `${formData.firstName} ${formData.lastName}`,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        country: formData.country,
+      },
+      payment_method: "card",
+    });
+
+    if (error) {
+      toast.error("Failed to place order. Please try again.");
+    } else {
+      setOrderNumber(orderNum);
+      setOrderPlaced(true);
+      clearCart();
+      toast.success("Order placed successfully! 🎉");
+    }
+    setSubmitting(false);
+  };
+
+  if (orderPlaced) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+          <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-background" />
+          </div>
+          <h1 className="font-display text-3xl font-bold mb-3">Order Confirmed!</h1>
+          <p className="text-muted-foreground mb-2">Thank you for your purchase</p>
+          <p className="text-primary font-semibold mb-6">Order: {orderNumber}</p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/orders" className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl inline-block">
+              View Orders
+            </Link>
+            <Link to="/shop" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl inline-block">
+              Continue Shopping
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <Check className="w-20 h-20 text-primary mx-auto mb-6" />
-          <h1 className="font-display text-3xl font-bold mb-3">Order Confirmed!</h1>
-          <p className="text-muted-foreground mb-6">Thank you for your purchase</p>
+          <h1 className="font-display text-3xl font-bold mb-3">Your cart is empty</h1>
           <Link to="/shop" className="gold-gradient text-background font-semibold px-8 py-3 rounded-xl inline-block">
-            Continue Shopping
+            Start Shopping
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-3xl font-bold mb-3">Sign In to Checkout</h1>
+          <p className="text-muted-foreground mb-6">You need an account to place an order</p>
+          <Link to="/account" className="gold-gradient text-background font-semibold px-8 py-3 rounded-xl inline-block">
+            Sign In / Create Account
           </Link>
         </div>
       </div>
@@ -48,7 +156,6 @@ export default function Checkout() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="font-display text-3xl font-bold mb-8">Checkout</h1>
 
-      {/* Steps */}
       <div className="flex items-center gap-4 mb-10">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
@@ -81,7 +188,7 @@ export default function Checkout() {
                   <input className={inputClass} placeholder="State" value={formData.state} onChange={(e) => update("state", e.target.value)} />
                   <input className={inputClass} placeholder="ZIP" value={formData.zip} onChange={(e) => update("zip", e.target.value)} />
                 </div>
-                <button onClick={() => setStep(1)} className="gold-gradient text-background font-semibold w-full py-4 rounded-xl hover:opacity-90">
+                <button onClick={() => validateStep(0) && setStep(1)} className="gold-gradient text-background font-semibold w-full py-4 rounded-xl hover:opacity-90">
                   Continue to Payment
                 </button>
               </div>
@@ -99,7 +206,7 @@ export default function Checkout() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="w-4 h-4" /> Your payment information is encrypted and secure</div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep(0)} className="flex-1 bg-secondary text-foreground font-semibold py-4 rounded-xl hover:bg-secondary/80">Back</button>
-                  <button onClick={() => setStep(2)} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90">Review Order</button>
+                  <button onClick={() => validateStep(1) && setStep(2)} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90">Review Order</button>
                 </div>
               </div>
             )}
@@ -125,14 +232,15 @@ export default function Checkout() {
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep(1)} className="flex-1 bg-secondary text-foreground font-semibold py-4 rounded-xl hover:bg-secondary/80">Back</button>
-                  <button onClick={handleSubmit} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90">Place Order — ${total.toFixed(2)}</button>
+                  <button onClick={handleSubmit} disabled={submitting} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90 disabled:opacity-50">
+                    {submitting ? "Placing Order..." : `Place Order — $${total.toFixed(2)}`}
+                  </button>
                 </div>
               </div>
             )}
           </motion.div>
         </div>
 
-        {/* Summary */}
         <div className="glass rounded-2xl p-6 h-fit sticky top-24 space-y-4">
           <h2 className="font-display text-xl font-bold">Summary</h2>
           <div className="space-y-2 text-sm">
