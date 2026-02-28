@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const links = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/products", icon: Package, label: "Products" },
   { to: "/admin/orders", icon: ShoppingCart, label: "Orders" },
+  { to: "/admin/shipping", icon: Truck, label: "Shipping" },
   { to: "/admin/customers", icon: Users, label: "Customers" },
   { to: "/admin/settings", icon: Settings, label: "Settings" },
 ];
