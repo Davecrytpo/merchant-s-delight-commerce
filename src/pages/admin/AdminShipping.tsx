@@ -116,7 +116,14 @@ export default function AdminShipping() {
               </tr>
             </thead>
             <tbody>
-              {methods?.map((m: any) => (
+              {methods?.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                    No shipping methods found. click "Add Method" to create one.
+                  </td>
+                </tr>
+              ) : (
+                methods?.map((m: any) => (
                 <tr key={m.id} className="border-b border-border/50 hover:bg-secondary/30">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -137,7 +144,7 @@ export default function AdminShipping() {
                     <button onClick={() => handleDelete(m.id)} className="p-1.5 hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         )}

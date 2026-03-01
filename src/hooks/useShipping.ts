@@ -5,12 +5,19 @@ export const useShippingMethods = () => {
   return useQuery({
     queryKey: ["shipping-methods"],
     queryFn: async () => {
+      console.log("useShippingMethods: Fetching...");
       const { data, error } = await supabase
         .from("shipping_methods")
         .select("*")
         .eq("is_active", true)
         .order("price", { ascending: true });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("useShippingMethods: Error", error);
+        throw error;
+      }
+      
+      console.log("useShippingMethods: Success", data);
       return data;
     },
   });
