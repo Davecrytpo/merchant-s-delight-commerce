@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAdminNotifications } from "@/hooks/useNotifications";
+import { formatDistanceToNow } from "date-fns";
 
 const links = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -14,6 +16,8 @@ const links = [
 
 export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { data: notifications, unreadCount, markAsRead, markAllRead } = useAdminNotifications();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -57,9 +61,17 @@ export default function AdminLayout() {
           </div>
           <span className="font-display font-bold">Admin</span>
         </div>
-        <button onClick={() => setMobileOpen(true)} className="p-2 hover:bg-secondary rounded-lg">
-          <Menu className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setNotifOpen(!notifOpen)} className="p-2 hover:bg-secondary rounded-lg relative">
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-[10px] font-bold flex items-center justify-center text-destructive-foreground">{unreadCount}</span>
+            )}
+          </button>
+          <button onClick={() => setMobileOpen(true)} className="p-2 hover:bg-secondary rounded-lg">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Desktop Sidebar */}
@@ -71,20 +83,8 @@ export default function AdminLayout() {
       <AnimatePresence>
         {mobileOpen && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
-              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] md:hidden" 
-            />
-            <motion.aside 
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25 }}
-              className="fixed inset-y-0 left-0 w-72 glass border-r border-border p-6 z-[101] md:hidden"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] md:hidden" />
+            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 25 }} className="fixed inset-y-0 left-0 w-72 glass border-r border-border p-6 z-[101] md:hidden">
               <button onClick={() => setMobileOpen(false)} className="absolute right-4 top-4 p-2 hover:bg-secondary rounded-lg"><X className="w-5 h-5" /></button>
               <SidebarContent />
             </motion.aside>
@@ -93,7 +93,56 @@ export default function AdminLayout() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-auto relative">
+        {/* Desktop Notification Bell */}
+        <div className="hidden md:flex justify-end mb-4">
+          <div className="relative">
+            <button onClick={() => setNotifOpen(!notifOpen)} className="p-2 hover:bg-secondary rounded-lg relative">
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-[10px] font-bold flex items-center justify-center text-destructive-foreground">{unreadCount}</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Notification Dropdown */}
+        <AnimatePresence>
+          {notifOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute right-4 top-14 md:top-16 w-80 glass rounded-2xl border border-border z-[60] overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="font-display font-bold text-sm">Notifications</h3>
+                {unreadCount > 0 && (
+                  <button onClick={() => markAllRead.mutate()} className="text-xs text-primary hover:underline">Mark all read</button>
+                )}
+              </div>
+              <div className="max-h-72 overflow-y-auto">
+                {!notifications?.length ? (
+                  <p className="p-4 text-sm text-muted-foreground text-center">No notifications yet</p>
+                ) : (
+                  notifications.map((n: any) => (
+                    <Link
+                      key={n.id}
+                      to={n.link || "#"}
+                      onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); setNotifOpen(false); }}
+                      className={`block p-3 border-b border-border/50 hover:bg-secondary/50 transition-colors ${!n.is_read ? "bg-primary/5" : ""}`}
+                    >
+                      <p className="text-sm font-medium">{n.title}</p>
+                      <p className="text-xs text-muted-foreground">{n.message}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</p>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="max-w-7xl mx-auto">
           <Outlet />
         </div>
