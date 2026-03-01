@@ -88,9 +88,9 @@ export default function AdminProducts() {
         />
       </div>
 
-      <div className="glass rounded-2xl overflow-hidden">
+      <div className="glass rounded-2xl overflow-hidden overflow-x-auto">
         {productsLoading ? <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div> : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-border text-muted-foreground">
                 <th className="py-3 px-4 text-left">Product</th>
