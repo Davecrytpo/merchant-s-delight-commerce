@@ -21,8 +21,7 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
-  const { cart } = useCart();
-  const totalItems = cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+  const { totalItems } = useCart();
   
   const { items: wishlistItems } = useWishlist();
   const { user, signOut } = useAuth();
@@ -137,9 +136,9 @@ export default function Header() {
                   />
                   <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-primary"><Search className="w-6 h-6" /></button>
                 </form>
-                {searchResults.length > 0 && (
+                {searchResults && searchResults.length > 0 && (
                   <div className="mt-4 grid gap-2">
-                    {searchResults.map(p => (
+                    {searchResults.map((p: any) => (
                       <Link key={p.id} to={`/product/${p.slug}`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20">
                         <div className="w-12 h-12 rounded-lg bg-secondary flex-shrink-0 flex items-center justify-center text-[10px] font-bold">SHOE</div>
                         <div className="flex-1">
