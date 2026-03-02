@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Search, Plus, Edit, Trash2, Loader2, Save, X } from "lucide-react";
 import { useProducts, useAdminProductMutations, useCategories } from "@/hooks/useProducts";
-import { useAdmin } from "@/hooks/useAdmin";
-import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function AdminProducts() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories } = useCategories();
   const { createProduct, updateProduct, deleteProduct } = useAdminProductMutations();
@@ -18,9 +15,6 @@ export default function AdminProducts() {
   });
 
   const filtered = products?.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase())) || [];
-
-  if (adminLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (isAdmin === false) return <Navigate to="/" />;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

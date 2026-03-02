@@ -3,17 +3,11 @@ import { DollarSign, ShoppingCart, Users, Package, ArrowUpRight, Loader2 } from 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useAdminOrders } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
-import { useAdmin } from "@/hooks/useAdmin";
-import { Navigate } from "react-router-dom";
 import { format } from "date-fns";
 
 export default function Dashboard() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { data: orders, isLoading: ordersLoading } = useAdminOrders();
-  const { data: products, isLoading: productsLoading } = useProducts();
-
-  if (adminLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (isAdmin === false) return <Navigate to="/" />;
+  const { data: products } = useProducts();
 
   const totalRevenue = orders?.reduce((acc: number, o: any) => acc + o.total, 0) || 0;
   const totalOrders = orders?.length || 0;
