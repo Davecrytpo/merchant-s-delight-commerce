@@ -6,6 +6,7 @@ import { products } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import ProductCard from "@/components/storefront/ProductCard";
+import ProductImageGallery from "@/components/product/ProductImageGallery";
 import { toast } from "sonner";
 
 export default function ProductDetail() {
@@ -13,7 +14,6 @@ export default function ProductDetail() {
   const { addItem } = useCart();
   const { isInWishlist, toggleItem } = useWishlist();
 
-  const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -85,19 +85,8 @@ export default function ProductDetail() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Images */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="aspect-square rounded-3xl overflow-hidden bg-secondary">
-              <motion.img key={selectedImage} src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }} />
-            </div>
-            <div className="flex gap-3">
-              {product.images.map((img, i) => (
-                <button key={i} onClick={() => setSelectedImage(i)} className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${i === selectedImage ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}>
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </motion.div>
+          {/* Images - now with break-apart animation */}
+          <ProductImageGallery images={product.images} name={product.name} />
 
           {/* Info */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -130,7 +119,7 @@ export default function ProductDetail() {
             {/* Color */}
             <div>
               <p className="font-semibold mb-3">Color: {selectedColor || "Select"}</p>
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 {colors.map(([name, hex]) => (
                   <button key={name} onClick={() => setSelectedColor(name)} className={`w-10 h-10 rounded-full border-2 transition-all ${selectedColor === name ? "border-primary scale-110" : "border-transparent"}`} style={{ backgroundColor: hex }} title={name} />
                 ))}
@@ -183,9 +172,9 @@ export default function ProductDetail() {
 
         {/* Tabs */}
         <div className="mt-16">
-          <div className="flex gap-6 border-b border-border">
+          <div className="flex gap-6 border-b border-border overflow-x-auto">
             {["description", "reviews", "shipping"].map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors relative ${activeTab === tab ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors relative whitespace-nowrap ${activeTab === tab ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                 {tab}
                 {activeTab === tab && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" layoutId="tab-underline" />}
               </button>
