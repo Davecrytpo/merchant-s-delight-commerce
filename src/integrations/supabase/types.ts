@@ -365,6 +365,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_methods: {
+        Row: {
+          carrier: string
+          created_at: string
+          description: string | null
+          estimated_days: string | null
+          id: string
+          is_active: boolean
+          min_order_amount: number | null
+          name: string
+          price: number
+        }
+        Insert: {
+          carrier: string
+          created_at?: string
+          description?: string | null
+          estimated_days?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          name: string
+          price?: number
+        }
+        Update: {
+          carrier?: string
+          created_at?: string
+          description?: string | null
+          estimated_days?: string | null
+          id?: string
+          is_active?: boolean
+          min_order_amount?: number | null
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
