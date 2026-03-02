@@ -1,11 +1,8 @@
 import { useMemo } from "react";
-import { useAdmin } from "@/hooks/useAdmin";
 import { useAdminOrders } from "@/hooks/useOrders";
-import { Navigate } from "react-router-dom";
 import { Loader2, Users } from "lucide-react";
 
 export default function AdminCustomers() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { data: orders, isLoading } = useAdminOrders();
 
   const customers = useMemo(() => {
@@ -28,9 +25,6 @@ export default function AdminCustomers() {
     });
     return Array.from(map.entries()).map(([id, data]) => ({ id, ...data }));
   }, [orders]);
-
-  if (adminLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (isAdmin === false) return <Navigate to="/" />;
 
   return (
     <div className="space-y-6">

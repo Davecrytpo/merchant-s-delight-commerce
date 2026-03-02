@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { NavLink, Outlet, Link } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X, Bell } from "lucide-react";
+import { NavLink, Outlet, Link, Navigate } from "react-router-dom";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X, Bell, LogOut, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminNotifications } from "@/hooks/useNotifications";
+import { useAdmin } from "@/hooks/useAdmin";
+import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 
 const links = [
@@ -18,6 +20,43 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const { data: notifications, unreadCount, markAsRead, markAllRead } = useAdminNotifications();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { user, loading: authLoading, signOut } = useAuth();
+
+  // Show loading while checking auth + admin status
+  if (authLoading || adminLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Not logged in → redirect to admin login
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // Logged in but not admin → show access denied
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-2xl bg-destructive/20 flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-destructive" />
+          </div>
+          <h1 className="font-display text-2xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-6">
+            Your account does not have admin privileges. Please contact the store owner to get admin access.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl">Back to Store</Link>
+            <button onClick={signOut} className="text-destructive font-semibold px-6 py-3 rounded-xl border border-destructive/30 hover:bg-destructive/10">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -45,7 +84,10 @@ export default function AdminLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="pt-6 mt-6 border-t border-border/50 text-[10px] uppercase font-bold tracking-widest text-muted-foreground text-center">
+      <button onClick={signOut} className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-xl transition-colors mt-2">
+        <LogOut className="w-4 h-4" /> Sign Out
+      </button>
+      <div className="pt-6 mt-4 border-t border-border/50 text-[10px] uppercase font-bold tracking-widest text-muted-foreground text-center">
         v2.4.0 High-Performance
       </div>
     </div>

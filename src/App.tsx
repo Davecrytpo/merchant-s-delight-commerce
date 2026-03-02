@@ -24,6 +24,7 @@ import Account from "@/pages/Account";
 import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 
+import AdminAuth from "@/pages/admin/AdminAuth";
 import Dashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminOrders from "@/pages/admin/AdminOrders";
@@ -57,7 +58,10 @@ export default function App() {
               <Route path="/orders" element={<Orders />} />
             </Route>
 
-            {/* Admin */}
+            {/* Admin Auth - separate from layout */}
+            <Route path="/admin/login" element={<AdminAuth />} />
+
+            {/* Admin Dashboard - protected by AdminLayout */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="products" element={<AdminProducts />} />
