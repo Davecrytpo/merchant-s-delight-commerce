@@ -6,10 +6,10 @@ import { products, categories, SHOE_IMAGES } from "@/data/products";
 import { Truck, Shield, RotateCcw, Headphones, Star, ArrowRight, Zap } from "lucide-react";
 
 const features = [
-  { icon: Truck, title: "Free Shipping", desc: "On orders over $100" },
-  { icon: Shield, title: "Authenticity", desc: "100% genuine products" },
-  { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy" },
-  { icon: Headphones, title: "24/7 Support", desc: "Always here for you" },
+  { icon: Truck, title: "Free Shipping", desc: "On orders over $100", link: "/faq" },
+  { icon: Shield, title: "Authenticity", desc: "100% genuine products", link: "/about" },
+  { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy", link: "/faq" },
+  { icon: Headphones, title: "24/7 Support", desc: "Always here for you", link: "/contact" },
 ];
 
 export default function Home() {
@@ -41,22 +41,24 @@ export default function Home() {
       <section className="py-12 border-b border-border">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
           {features.map((f, i) => (
-            <motion.div
-              key={i}
-              className="flex items-center gap-4 p-4 rounded-xl glass"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
-                <f.icon className="w-5 h-5 text-background" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-sm">{f.title}</h4>
-                <p className="text-xs text-muted-foreground">{f.desc}</p>
-              </div>
-            </motion.div>
+            <Link key={i} to={f.link} className="block">
+              <motion.div
+                className="flex items-center gap-4 p-4 rounded-xl glass h-full hover:bg-secondary/50 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.02 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                  <f.icon className="w-5 h-5 text-background" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm">{f.title}</h4>
+                  <p className="text-xs text-muted-foreground">{f.desc}</p>
+                </div>
+              </motion.div>
+            </Link>
           ))}
         </div>
       </section>
