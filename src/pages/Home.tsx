@@ -38,23 +38,23 @@ export default function Home() {
       </div>
 
       {/* Features Bar */}
-      <section className="py-12 border-b border-border">
+      <section className="py-12 border-b border-border relative z-20 bg-background">
         <div className="container mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
           {features.map((f, i) => (
-            <Link key={i} to={f.link} className="block">
+            <Link key={i} to={f.link} className="block relative z-30 group">
               <motion.div
-                className="flex items-center gap-4 p-4 rounded-xl glass h-full hover:bg-secondary/50 transition-colors"
+                className="flex items-center gap-4 p-4 rounded-xl glass h-full hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-primary/50"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
               >
-                <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0 shadow-lg group-hover:shadow-primary/20 transition-shadow">
                   <f.icon className="w-5 h-5 text-background" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm">{f.title}</h4>
+                  <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{f.title}</h4>
                   <p className="text-xs text-muted-foreground">{f.desc}</p>
                 </div>
               </motion.div>
