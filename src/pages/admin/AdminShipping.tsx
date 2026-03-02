@@ -1,14 +1,11 @@
 import { useState } from "react";
 import { Truck, Plus, Edit, Trash2, Loader2, Save, X, Globe } from "lucide-react";
 import { useShippingMethods } from "@/hooks/useShipping";
-import { useAdmin } from "@/hooks/useAdmin";
-import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function AdminShipping() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { data: methods, isLoading: methodsLoading } = useShippingMethods();
   const queryClient = useQueryClient();
   
@@ -17,9 +14,6 @@ export default function AdminShipping() {
   const [formData, setFormData] = useState({
     name: "", carrier: "", price: 0, min_order_amount: 0, estimated_days: "", description: ""
   });
-
-  if (adminLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (isAdmin === false) return <Navigate to="/" />;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useAdminOrders, useUpdateOrderStatus } from "@/hooks/useOrders";
-import { useAdmin } from "@/hooks/useAdmin";
-import { Navigate } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 
@@ -15,14 +13,10 @@ const STATUS_TABS = [
 ];
 
 export default function AdminOrders() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { data: orders, isLoading } = useAdminOrders();
   const updateStatus = useUpdateOrderStatus();
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
-
-  if (adminLoading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" /></div>;
-  if (isAdmin === false) return <Navigate to="/" />;
 
   const filtered = orders?.filter((o: any) => {
     const matchesTab = activeTab === "all" || o.status === activeTab;
