@@ -25,11 +25,11 @@ export default function AdminShipping() {
     e.preventDefault();
     try {
       if (editingId) {
-        const { error } = await supabase.from("shipping_methods").update(formData).eq("id", editingId);
+        const { error } = await (supabase.from as any)("shipping_methods").update(formData).eq("id", editingId);
         if (error) throw error;
         toast.success("Shipping method updated");
       } else {
-        const { error } = await supabase.from("shipping_methods").insert(formData);
+        const { error } = await (supabase.from as any)("shipping_methods").insert(formData);
         if (error) throw error;
         toast.success("Shipping method created");
       }
@@ -44,7 +44,7 @@ export default function AdminShipping() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this shipping method?")) return;
-    const { error } = await supabase.from("shipping_methods").delete().eq("id", id);
+    const { error } = await (supabase.from as any)("shipping_methods").delete().eq("id", id);
     if (error) toast.error("Failed to delete");
     else {
       toast.success("Deleted");

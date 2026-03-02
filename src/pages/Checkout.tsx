@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, ChevronRight, Loader2 } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useShippingMethods } from "@/hooks/useShipping";
+import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
 
 const STEPS = ["Shipping", "Carrier", "Payment", "Review"];
 
@@ -34,8 +34,8 @@ export default function Checkout() {
     cardNumber: "", cardExpiry: "", cardCvc: "", cardName: "",
   });
 
-  const selectedMethod = useMemo(() => 
-    shippingMethods?.find(m => m.id === selectedMethodId) || shippingMethods?.[0]
+  const selectedMethod: ShippingMethod | undefined = useMemo(() => 
+    shippingMethods?.find((m: ShippingMethod) => m.id === selectedMethodId) || shippingMethods?.[0]
   , [shippingMethods, selectedMethodId]);
 
   const shippingCost = useMemo(() => {
@@ -90,7 +90,7 @@ export default function Checkout() {
       user_id: user.id,
       order_number: orderNum,
       status: "pending",
-      items: orderItems,
+      items: orderItems as any,
       subtotal: totalPrice,
       shipping: shippingCost,
       tax,
@@ -104,7 +104,7 @@ export default function Checkout() {
         country: formData.country,
         carrier: selectedMethod?.carrier,
         method: selectedMethod?.name
-      },
+      } as any,
       payment_method: "card",
     });
 
@@ -130,12 +130,8 @@ export default function Checkout() {
           <p className="text-muted-foreground mb-2">Thank you for your purchase</p>
           <p className="text-primary font-semibold mb-6">Order: {orderNumber}</p>
           <div className="flex gap-3 justify-center">
-            <Link to="/orders" className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl inline-block">
-              View Orders
-            </Link>
-            <Link to="/shop" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl inline-block">
-              Continue Shopping
-            </Link>
+            <Link to="/orders" className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl inline-block">View Orders</Link>
+            <Link to="/shop" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl inline-block">Continue Shopping</Link>
           </div>
         </motion.div>
       </div>
@@ -151,9 +147,7 @@ export default function Checkout() {
       <div className="flex items-center gap-4 mb-10 overflow-x-auto pb-4">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2 shrink-0">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              i <= step ? "gold-gradient text-background" : "bg-secondary text-muted-foreground"
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i <= step ? "gold-gradient text-background" : "bg-secondary text-muted-foreground"}`}>
               {i < step ? <Check className="w-4 h-4" /> : i + 1}
             </div>
             <span className={`text-sm font-medium ${i <= step ? "text-foreground" : "text-muted-foreground"}`}>{s}</span>
@@ -191,7 +185,7 @@ export default function Checkout() {
                 <div className="flex items-center gap-2 mb-4"><Truck className="w-5 h-5 text-primary" /><h2 className="font-display text-xl font-bold">Shipping Method</h2></div>
                 {shippingLoading ? <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin" /></div> : (
                   <div className="space-y-3">
-                    {shippingMethods?.map((m) => (
+                    {shippingMethods?.map((m: ShippingMethod) => (
                       <button 
                         key={m.id}
                         onClick={() => setSelectedMethodId(m.id)}
@@ -260,8 +254,14 @@ export default function Checkout() {
                   ))}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-secondary/30 rounded-xl p-4">
-                  <div><p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Ship to</p><p className="font-medium">{formData.firstName} {formData.lastName}<br/>{formData.address}<br/>{formData.city}, {formData.state} {formData.zip}</p></div>
-                  <div><p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Shipping Method</p><p className="font-medium">{selectedMethod?.carrier} {selectedMethod?.name}<br/><span className="text-xs text-muted-foreground">{selectedMethod?.estimated_days}</span></p></div>
+                  <div>
+                    <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Ship to</p>
+                    <p className="font-medium">{formData.firstName} {formData.lastName}<br/>{formData.address}<br/>{formData.city}, {formData.state} {formData.zip}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Shipping Method</p>
+                    <p className="font-medium">{selectedMethod?.carrier} {selectedMethod?.name}<br/><span className="text-xs text-muted-foreground">{selectedMethod?.estimated_days}</span></p>
+                  </div>
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setStep(2)} className="flex-1 bg-secondary text-foreground font-semibold py-4 rounded-xl hover:bg-secondary/80">Back</button>
