@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 
 import StorefrontLayout from "@/components/storefront/StorefrontLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
+import AIChatWidget from "@/components/ai/AIChatWidget";
 
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
@@ -58,10 +59,8 @@ export default function App() {
               <Route path="/orders" element={<Orders />} />
             </Route>
 
-            {/* Admin Auth - separate from layout */}
+            {/* Admin */}
             <Route path="/admin/login" element={<AdminAuth />} />
-
-            {/* Admin Dashboard - protected by AdminLayout */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="products" element={<AdminProducts />} />
@@ -73,6 +72,9 @@ export default function App() {
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+
+          {/* AI Chat Widget — available on all storefront pages */}
+          <AIChatWidget />
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>

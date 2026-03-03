@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import ProductCard from "@/components/storefront/ProductCard";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
+import ProductReviews from "@/components/product/ProductReviews";
 import { toast } from "sonner";
 
 export default function ProductDetail() {
@@ -84,15 +85,13 @@ export default function ProductDetail() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Images - now with break-apart animation */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           <ProductImageGallery images={product.images} name={product.name} />
 
-          {/* Info */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
             <div>
               <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">{product.brand}</p>
-              <h1 className="font-display text-3xl md:text-4xl font-bold">{product.name}</h1>
+              <h1 className="font-display text-2xl md:text-4xl font-bold">{product.name}</h1>
               <div className="flex items-center gap-3 mt-3">
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -105,20 +104,20 @@ export default function ProductDetail() {
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="font-display text-3xl font-bold">${product.price}</span>
+              <span className="font-display text-2xl md:text-3xl font-bold">${product.price}</span>
               {product.originalPrice && (
                 <>
-                  <span className="text-xl text-muted-foreground line-through">${product.originalPrice}</span>
+                  <span className="text-lg md:text-xl text-muted-foreground line-through">${product.originalPrice}</span>
                   <span className="px-2 py-1 rounded-full bg-destructive/20 text-destructive text-sm font-bold">-{discount}%</span>
                 </>
               )}
             </div>
 
-            <p className="text-muted-foreground">{product.description}</p>
+            <p className="text-muted-foreground text-sm md:text-base">{product.description}</p>
 
             {/* Color */}
             <div>
-              <p className="font-semibold mb-3">Color: {selectedColor || "Select"}</p>
+              <p className="font-semibold mb-3 text-sm">Color: {selectedColor || "Select"}</p>
               <div className="flex gap-3 flex-wrap">
                 {colors.map(([name, hex]) => (
                   <button key={name} onClick={() => setSelectedColor(name)} className={`w-10 h-10 rounded-full border-2 transition-all ${selectedColor === name ? "border-primary scale-110" : "border-transparent"}`} style={{ backgroundColor: hex }} title={name} />
@@ -129,10 +128,10 @@ export default function ProductDetail() {
             {/* Size */}
             <div>
               <div className="flex justify-between mb-3">
-                <p className="font-semibold">Size: {selectedSize || "Select"}</p>
+                <p className="font-semibold text-sm">Size: {selectedSize || "Select"}</p>
                 <Link to="/size-guide" className="text-primary text-sm underline">Size Guide</Link>
               </div>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                 {sizes.map((size) => (
                   <button key={size} onClick={() => setSelectedSize(size)} className={`py-2.5 rounded-xl text-sm font-medium transition-all ${selectedSize === size ? "gold-gradient text-background" : "bg-secondary hover:bg-secondary/80"}`}>
                     {size}
@@ -143,7 +142,7 @@ export default function ProductDetail() {
 
             {/* Quantity */}
             <div>
-              <p className="font-semibold mb-3">Quantity</p>
+              <p className="font-semibold mb-3 text-sm">Quantity</p>
               <div className="flex items-center gap-4">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center"><Minus className="w-4 h-4" /></button>
                 <span className="font-semibold text-lg w-8 text-center">{quantity}</span>
@@ -153,7 +152,7 @@ export default function ProductDetail() {
 
             {/* Actions */}
             <div className="flex gap-3">
-              <button onClick={handleAddToCart} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 text-lg">
+              <button onClick={handleAddToCart} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 text-base md:text-lg">
                 <ShoppingBag className="w-5 h-5" /> Add to Cart
               </button>
               <button onClick={() => { toggleItem(product); toast.success(wishlisted ? "Removed" : "Added to wishlist"); }} className={`w-14 rounded-xl flex items-center justify-center transition-all ${wishlisted ? "bg-primary text-primary-foreground" : "glass glass-hover"}`}>
@@ -162,9 +161,9 @@ export default function ProductDetail() {
             </div>
 
             {/* Trust */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
               {[{ icon: Truck, text: "Free Shipping" }, { icon: Shield, text: "Authentic" }, { icon: RotateCcw, text: "30-Day Returns" }].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground"><item.icon className="w-4 h-4 text-primary" />{item.text}</div>
+                <div key={i} className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground"><item.icon className="w-4 h-4 text-primary shrink-0" />{item.text}</div>
               ))}
             </div>
           </motion.div>
@@ -180,17 +179,25 @@ export default function ProductDetail() {
               </button>
             ))}
           </div>
-          <div className="py-8 max-w-3xl text-muted-foreground leading-relaxed">
-            {activeTab === "description" && <p>{product.longDescription}</p>}
-            {activeTab === "reviews" && <p>Reviews coming soon. Be the first to review this product!</p>}
-            {activeTab === "shipping" && <p>Free standard shipping on orders over $100. Standard: 5-7 days | Express: 2-3 days | Overnight: Next day</p>}
+          <div className="py-8">
+            {activeTab === "description" && (
+              <div className="max-w-3xl text-muted-foreground leading-relaxed">{product.longDescription}</div>
+            )}
+            {activeTab === "reviews" && (
+              <ProductReviews productId={product.id} productName={product.name} />
+            )}
+            {activeTab === "shipping" && (
+              <div className="max-w-3xl text-muted-foreground leading-relaxed">
+                <p>Free standard shipping on orders over $100. Standard: 5-7 days | Express: 2-3 days | Overnight: Next day</p>
+              </div>
+            )}
           </div>
         </div>
 
         {related.length > 0 && (
           <div className="mt-16">
             <h2 className="font-display text-2xl font-bold mb-8">You May Also Like</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {related.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
             </div>
           </div>
