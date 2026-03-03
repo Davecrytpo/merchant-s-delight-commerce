@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, Grid3X3, LayoutList, X, Search } from "lucide-react";
+import { SlidersHorizontal, Grid3X3, LayoutList, X, Search, Loader2 } from "lucide-react";
 import ProductCard from "@/components/storefront/ProductCard";
-import { products, categories } from "@/data/products";
+import { useProducts, useCategories } from "@/hooks/useProducts";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -18,41 +18,51 @@ export default function Shop() {
   const [gridCols, setGridCols] = useState(4);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const activeCategory = searchParams.get("category") || "";
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+
+  const activeCategoryId = searchParams.get("category") || "";
   const activeSort = searchParams.get("sort") || "newest";
   const priceRange = searchParams.get("price") || "";
   const searchQuery = searchParams.get("search") || "";
 
   const filtered = useMemo(() => {
+    if (!products) return [];
     let result = [...products];
     
     // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (p) =>
+        (p: any) =>
           p.name.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
           p.brand.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.includes(q))
+          p.description?.toLowerCase().includes(q)
       );
     }
     
-    if (activeCategory) result = result.filter((p) => p.category === activeCategory);
+    if (activeCategoryId) {
+      result = result.filter((p: any) => p.category_id === activeCategoryId);
+    }
+
     if (priceRange) {
       const [min, max] = priceRange.split("-").map(Number);
-      result = result.filter((p) => p.price >= min && p.price <= max);
+      result = result.filter((p: any) => p.price >= min && p.price <= max);
     }
+
     switch (activeSort) {
       case "price-asc": result.sort((a, b) => a.price - b.price); break;
       case "price-desc": result.sort((a, b) => b.price - a.price); break;
-      case "rating": result.sort((a, b) => b.rating - a.rating); break;
-      case "popular": result.sort((a, b) => b.reviewCount - a.reviewCount); break;
-      default: break;
+      case "rating": result.sort((a, b) => (b.rating || 5) - (a.rating || 5)); break;
+      case "popular": result.sort((a, b) => (b.review_count || 0) - (a.review_count || 0)); break;
+      default: result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
     }
     return result;
-  }, [activeCategory, activeSort, priceRange, searchQuery]);
+  }, [products, activeCategoryId, activeSort, priceRange, searchQuery]);
+
+  const activeCategoryName = useMemo(() => {
+    return categories?.find((c: any) => c.id === activeCategoryId)?.name || "";
+  }, [categories, activeCategoryId]);
 
   const setFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams);
@@ -60,6 +70,14 @@ export default function Shop() {
     else params.delete(key);
     setSearchParams(params);
   };
+
+  if (productsLoading || categoriesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -73,10 +91,10 @@ export default function Shop() {
             {searchQuery ? (
               <>Results for "<span className="gold-text">{searchQuery}</span>"</>
             ) : (
-              <>{activeCategory || "All"} <span className="gold-text">Shoes</span></>
+              <>{activeCategoryName || "All"} <span className="gold-text">Shoes</span></>
             )}
           </motion.h1>
-          <p className="text-muted-foreground mt-2">{filtered.length} products</p>
+          <p className="text-muted-foreground mt-2">{filtered.length} products found</p>
         </div>
       </div>
 
@@ -89,9 +107,9 @@ export default function Shop() {
             >
               <SlidersHorizontal className="w-4 h-4" /> Filters
             </button>
-            {activeCategory && (
+            {activeCategoryId && (
               <button onClick={() => setFilter("category", "")} className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm">
-                {activeCategory} <X className="w-3 h-3" />
+                {activeCategoryName} <X className="w-3 h-3" />
               </button>
             )}
             {searchQuery && (
@@ -124,7 +142,7 @@ export default function Shop() {
           </div>
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex flex-col md:flex-row gap-8">
           <motion.aside
             className={`${filtersOpen ? "block" : "hidden"} md:block w-full md:w-64 shrink-0`}
             initial={{ opacity: 0, x: -20 }}
@@ -136,17 +154,17 @@ export default function Shop() {
                 <div className="space-y-2">
                   <button
                     onClick={() => setFilter("category", "")}
-                    className={`block text-sm w-full text-left px-3 py-2 rounded-lg transition-colors ${!activeCategory ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                    className={`block text-sm w-full text-left px-3 py-2 rounded-lg transition-colors ${!activeCategoryId ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
                   >
-                    All ({products.length})
+                    All Products
                   </button>
-                  {categories.map((cat) => (
+                  {categories?.map((cat: any) => (
                     <button
-                      key={cat.slug}
-                      onClick={() => setFilter("category", cat.name)}
-                      className={`block text-sm w-full text-left px-3 py-2 rounded-lg transition-colors ${activeCategory === cat.name ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                      key={cat.id}
+                      onClick={() => setFilter("category", cat.id)}
+                      className={`block text-sm w-full text-left px-3 py-2 rounded-lg transition-colors ${activeCategoryId === cat.id ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
                     >
-                      {cat.name} ({products.filter((p) => p.category === cat.name).length})
+                      {cat.name}
                     </button>
                   ))}
                 </div>
@@ -176,7 +194,7 @@ export default function Shop() {
               </div>
             ) : (
               <div className={`grid grid-cols-2 ${gridCols === 3 ? "md:grid-cols-3" : "md:grid-cols-3 lg:grid-cols-4"} gap-6`}>
-                {filtered.map((product, i) => (
+                {filtered.map((product: any, i: number) => (
                   <ProductCard key={product.id} product={product} index={i} />
                 ))}
               </div>

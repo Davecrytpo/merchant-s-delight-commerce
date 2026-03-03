@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 
 import StorefrontLayout from "@/components/storefront/StorefrontLayout";
 import AdminLayout from "@/components/admin/AdminLayout";
-import AIChatWidget from "@/components/ai/AIChatWidget";
+import AIChatWidget from "@/components/storefront/AIChatWidget";
 
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";

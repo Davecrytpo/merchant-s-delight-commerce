@@ -33,7 +33,7 @@ serve(async (req) => {
               product_id: item.product_id,
             },
           },
-          unit_amount: Math.round(item.price * 100),
+          unit_amount: Math.round(Number(item.price) * 100),
         },
         quantity: item.quantity,
       })),
@@ -44,7 +44,7 @@ serve(async (req) => {
       metadata: {
         order_number,
         user_id,
-        points_used: points_used.toString(),
+        points_used: points_used?.toString() || "0",
       },
     })
 
