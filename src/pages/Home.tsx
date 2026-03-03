@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import HeroCarousel from "@/components/storefront/HeroCarousel";
 import ProductCard from "@/components/storefront/ProductCard";
-import { products, categories, SHOE_IMAGES } from "@/data/products";
-import { Truck, Shield, RotateCcw, Headphones, Star, ArrowRight, Zap } from "lucide-react";
+import { useProducts, useCategories } from "@/hooks/useProducts";
+import { Truck, Shield, RotateCcw, Headphones, Star, ArrowRight, Zap, Loader2 } from "lucide-react";
 
 const features = [
   { icon: Truck, title: "Free Shipping", desc: "On orders over $100", link: "/faq" },
@@ -13,9 +13,20 @@ const features = [
 ];
 
 export default function Home() {
-  const featured = products.filter((p) => p.isFeatured);
-  const trending = products.filter((p) => p.isTrending);
-  const newArrivals = products.filter((p) => p.isNew);
+  const { data: products, isLoading } = useProducts();
+  const { data: categories } = useCategories();
+
+  const featured = products?.filter((p: any) => p.is_featured) || [];
+  const trending = products?.filter((p: any) => p.is_trending) || [];
+  const newArrivals = products?.filter((p: any) => p.is_new) || [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -64,143 +75,125 @@ export default function Home() {
       </section>
 
       {/* Categories */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex justify-between items-end mb-10"
-          >
-            <div>
-              <span className="text-primary text-sm font-semibold uppercase tracking-wider">Browse</span>
-              <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Shop by Category</h2>
-            </div>
-            <Link to="/shop" className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
-              View All <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
+      {categories && categories.length > 0 && (
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex justify-between items-end mb-10"
+            >
+              <div>
+                <span className="text-primary text-sm font-semibold uppercase tracking-wider">Browse</span>
+                <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Shop by Category</h2>
+              </div>
+              <Link to="/shop" className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {categories.slice(0, 8).map((cat, i) => (
-              <motion.div
-                key={cat.slug}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link
-                  to={`/shop?category=${cat.name}`}
-                  className="group relative aspect-[4/3] rounded-2xl overflow-hidden block"
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {categories.slice(0, 8).map((cat: any, i: number) => (
+                <motion.div
+                  key={cat.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
                 >
-                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
-                  <div className="absolute bottom-4 left-4">
-                    <h3 className="font-display text-xl font-bold">{cat.name}</h3>
-                    <p className="text-sm text-muted-foreground">{cat.count} products</p>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                  <Link
+                    to={`/shop?category=${cat.id}`}
+                    className="group relative aspect-[4/3] rounded-2xl overflow-hidden block"
+                  >
+                    <img src={cat.image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <h3 className="font-display text-xl font-bold">{cat.name}</h3>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Featured Products */}
-      <section className="py-20 bg-card/50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex justify-between items-end mb-10"
-          >
-            <div>
-              <span className="text-primary text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-                <Zap className="w-4 h-4" /> Curated
-              </span>
-              <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Featured Collection</h2>
-            </div>
-            <Link to="/shop" className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
-              View All <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {featured.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Big Banner */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="relative rounded-3xl overflow-hidden"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-          >
-            <img src={SHOE_IMAGES[7]} alt="Collection" className="w-full h-[400px] md:h-[500px] object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent" />
-            <div className="absolute inset-0 flex items-center">
-              <div className="p-8 md:p-16 max-w-lg">
-                <span className="text-primary text-sm font-semibold uppercase tracking-wider">Limited Edition</span>
-                <h2 className="font-display text-4xl md:text-5xl font-bold mt-2 mb-4">Summit Trail X</h2>
-                <p className="text-muted-foreground mb-6">Conquer any terrain with GORE-TEX® protection and Vibram® traction. Built for those who refuse to stay on the beaten path.</p>
-                <Link to="/product/summit-trail-x" className="gold-gradient text-background font-semibold px-8 py-4 rounded-xl inline-block hover:opacity-90 transition-opacity">
-                  Shop Now — $219
-                </Link>
+      {featured.length > 0 && (
+        <section className="py-20 bg-card/50">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="flex justify-between items-end mb-10"
+            >
+              <div>
+                <span className="text-primary text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                  <Zap className="w-4 h-4" /> Curated
+                </span>
+                <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Featured Collection</h2>
               </div>
+              <Link to="/shop" className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {featured.map((product: any, i: number) => (
+                <ProductCard key={product.id} product={product} index={i} />
+              ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* Trending */}
-      <section className="py-20 bg-card/50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <span className="text-primary text-sm font-semibold uppercase tracking-wider">Hot Right Now</span>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Trending This Week</h2>
-          </motion.div>
+      {trending.length > 0 && (
+        <section className="py-20 bg-card/50">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-10"
+            >
+              <span className="text-primary text-sm font-semibold uppercase tracking-wider">Hot Right Now</span>
+              <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">Trending This Week</h2>
+            </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {trending.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
-            ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {trending.map((product: any, i: number) => (
+                <ProductCard key={product.id} product={product} index={i} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* New Arrivals */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <span className="text-primary text-sm font-semibold uppercase tracking-wider">Just Dropped</span>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">New Arrivals</h2>
-          </motion.div>
+      {newArrivals.length > 0 && (
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-10"
+            >
+              <span className="text-primary text-sm font-semibold uppercase tracking-wider">Just Dropped</span>
+              <h2 className="font-display text-3xl md:text-4xl font-bold mt-1">New Arrivals</h2>
+            </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {newArrivals.map((product, i) => (
-              <ProductCard key={product.id} product={product} index={i} />
-            ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {newArrivals.map((product: any, i: number) => (
+                <ProductCard key={product.id} product={product} index={i} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Testimonials */}
       <section className="py-20 bg-card/50">
