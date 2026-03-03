@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, TrendingUp } from "lucide-react";
+import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, TrendingUp, Coins } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -67,6 +67,7 @@ export default function Account() {
   const totalOrders = orders?.length || 0;
   const totalSpent = orders?.reduce((acc: number, o: any) => acc + Number(o.total), 0) || 0;
   const pendingOrders = orders?.filter((o: any) => o.status === "pending" || o.status === "processing").length || 0;
+  const rewardPoints = profile?.reward_points || 0;
   const recentOrders = orders?.slice(0, 3) || [];
 
   if (user) {
@@ -92,7 +93,7 @@ export default function Account() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
           {[
             { icon: ShoppingBag, label: "Total Orders", value: totalOrders, color: "text-primary" },
-            { icon: TrendingUp, label: "Total Spent", value: `$${totalSpent.toFixed(2)}`, color: "text-green-400" },
+            { icon: Coins, label: "Reward Points", value: rewardPoints, color: "text-yellow-400" },
             { icon: Clock, label: "Active Orders", value: pendingOrders, color: "text-blue-400" },
             { icon: Heart, label: "Wishlist", value: "View", color: "text-pink-400", link: "/wishlist" },
           ].map((s, i) => (
