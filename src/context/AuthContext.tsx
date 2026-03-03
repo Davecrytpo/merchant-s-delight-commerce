@@ -12,6 +12,7 @@ interface Profile {
   state: string | null;
   zip_code: string | null;
   country: string | null;
+  reward_points: number;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,12 +36,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
-      .select("full_name, phone, avatar_url, address_line1, address_line2, city, state, zip_code, country")
+      .select("full_name, phone, avatar_url, address_line1, address_line2, city, state, zip_code, country, reward_points")
       .eq("user_id", userId)
-      .single();
-    if (data) setProfile(data);
+      .maybeSingle();
+    
+    if (data) {
+      setProfile(data as Profile);
+    } else if (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
   };
 
   useEffect(() => {
@@ -99,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, updateProfile, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

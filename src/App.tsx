@@ -32,6 +32,7 @@ import AdminOrders from "@/pages/admin/AdminOrders";
 import AdminCustomers from "@/pages/admin/AdminCustomers";
 import AdminShipping from "@/pages/admin/AdminShipping";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminReviews from "@/pages/admin/AdminReviews";
 
 export default function App() {
   return (
@@ -66,6 +67,7 @@ export default function App() {
               <Route path="products" element={<AdminProducts />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="shipping" element={<AdminShipping />} />
+              <Route path="reviews" element={<AdminReviews />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

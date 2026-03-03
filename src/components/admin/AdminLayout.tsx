@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, Link, Navigate } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X, Bell, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, ArrowLeft, Truck, Menu, X, Bell, LogOut, Loader2, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminNotifications } from "@/hooks/useNotifications";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -12,6 +12,7 @@ const links = [
   { to: "/admin/products", icon: Package, label: "Products" },
   { to: "/admin/orders", icon: ShoppingCart, label: "Orders" },
   { to: "/admin/shipping", icon: Truck, label: "Shipping" },
+  { to: "/admin/reviews", icon: Star, label: "Reviews" },
   { to: "/admin/customers", icon: Users, label: "Customers" },
   { to: "/admin/settings", icon: Settings, label: "Settings" },
 ];

@@ -81,10 +81,38 @@ export const useAdminProductMutations = () => {
   const queryClient = useQueryClient();
 
   const createProduct = useMutation({
-    mutationFn: async (product: any) => {
-      const { data, error } = await supabase.from("products").insert(product).select().single();
-      if (error) throw error;
-      return data;
+    mutationFn: async ({ product, images, variants }: any) => {
+      // 1. Create product
+      const { data: newProduct, error: productError } = await supabase
+        .from("products")
+        .insert(product)
+        .select()
+        .single();
+      
+      if (productError) throw productError;
+
+      // 2. Add images if any
+      if (images && images.length > 0) {
+        const imageData = images.map((url: string, index: number) => ({
+          product_id: newProduct.id,
+          image_url: url,
+          position: index
+        }));
+        const { error: imageError } = await supabase.from("product_images").insert(imageData);
+        if (imageError) throw imageError;
+      }
+
+      // 3. Add variants if any
+      if (variants && variants.length > 0) {
+        const variantData = variants.map((v: any) => ({
+          product_id: newProduct.id,
+          ...v
+        }));
+        const { error: variantError } = await supabase.from("product_variants").insert(variantData);
+        if (variantError) throw variantError;
+      }
+
+      return newProduct;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -93,10 +121,49 @@ export const useAdminProductMutations = () => {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async ({ id, ...updates }: any) => {
-      const { data, error } = await supabase.from("products").update(updates).eq("id", id).select().single();
-      if (error) throw error;
-      return data;
+    mutationFn: async ({ id, product, images, variants }: any) => {
+      // 1. Update product basic info
+      const { data: updatedProduct, error: productError } = await supabase
+        .from("products")
+        .update(product)
+        .eq("id", id)
+        .select()
+        .single();
+      
+      if (productError) throw productError;
+
+      // 2. Update images (simple approach: delete and re-add)
+      if (images) {
+        await supabase.from("product_images").delete().eq("product_id", id);
+        if (images.length > 0) {
+          const imageData = images.map((url: string, index: number) => ({
+            product_id: id,
+            image_url: url,
+            position: index
+          }));
+          const { error: imageError } = await supabase.from("product_images").insert(imageData);
+          if (imageError) throw imageError;
+        }
+      }
+
+      // 3. Update variants (simple approach: delete and re-add)
+      if (variants) {
+        await supabase.from("product_variants").delete().eq("product_id", id);
+        if (variants.length > 0) {
+          const variantData = variants.map((v: any) => ({
+            product_id: id,
+            size: v.size,
+            color: v.color,
+            color_hex: v.color_hex,
+            stock: v.stock,
+            price: v.price
+          }));
+          const { error: variantError } = await supabase.from("product_variants").insert(variantData);
+          if (variantError) throw variantError;
+        }
+      }
+
+      return updatedProduct;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });

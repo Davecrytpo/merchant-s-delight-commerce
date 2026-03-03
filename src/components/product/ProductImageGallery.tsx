@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, MouseEvent, TouchEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ZoomIn, X } from "lucide-react";
+import { SearchIcon, ZoomIn, ZoomOut } from "lucide-react";
 
 interface Props {
   images: string[];
@@ -9,159 +9,100 @@ interface Props {
 
 export default function ProductImageGallery({ images, name }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isExploded, setIsExploded] = useState(false);
-  const [zoomed, setZoomed] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
-  const imgRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastTap = useRef<number>(0);
 
-  const fragments = Array.from({ length: 9 }, (_, i) => {
-    const row = Math.floor(i / 3);
-    const col = i % 3;
-    return {
-      id: i,
-      originX: `${col * 33.33}%`,
-      originY: `${row * 33.33}%`,
-      width: "33.34%",
-      height: "33.34%",
-      tx: (col - 1) * (80 + Math.random() * 60),
-      ty: (row - 1) * (80 + Math.random() * 60),
-      rotate: (Math.random() - 0.5) * 45,
-      delay: Math.random() * 0.1,
-    };
-  });
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imgRef.current || !zoomed) return;
-    const rect = imgRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    if (!zoom || !containerRef.current) return;
+    const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
     setZoomPos({ x, y });
-  }, [zoomed]);
+  };
 
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (!imgRef.current || !zoomed) return;
-    const touch = e.touches[0];
-    const rect = imgRef.current.getBoundingClientRect();
-    const x = ((touch.clientX - rect.left) / rect.width) * 100;
-    const y = ((touch.clientY - rect.top) / rect.height) * 100;
-    setZoomPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
-  }, [zoomed]);
+  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      setZoom(!zoom);
+      if (e.touches && e.touches[0] && containerRef.current) {
+        const { left, top, width, height } = containerRef.current.getBoundingClientRect();
+        const x = ((e.touches[0].clientX - left) / width) * 100;
+        const y = ((e.touches[0].clientY - top) / height) * 100;
+        setZoomPos({ x, y });
+      }
+    }
+    lastTap.current = now;
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -30 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-4"
-    >
-      {/* Main Image */}
+    <div className="space-y-4">
+      {/* Main Image with Zoom */}
       <div
-        ref={imgRef}
-        className="relative aspect-square rounded-3xl overflow-hidden bg-secondary cursor-pointer select-none"
-        onClick={() => {
-          if (zoomed) { setZoomed(false); return; }
-          setIsExploded(!isExploded);
-        }}
-        onDoubleClick={() => { setZoomed(!zoomed); setIsExploded(false); }}
+        ref={containerRef}
+        className="relative aspect-square rounded-3xl overflow-hidden bg-secondary cursor-zoom-in group"
         onMouseMove={handleMouseMove}
-        onMouseLeave={() => zoomed && setZoomed(false)}
-        onTouchMove={handleTouchMove}
+        onMouseEnter={() => !zoom && setZoom(true)}
+        onMouseLeave={() => setZoom(false)}
+        onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="wait">
-          {isExploded && !zoomed ? (
-            <motion.div key={`exploded-${selectedImage}`} className="absolute inset-0" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {fragments.map((frag) => (
-                <motion.div
-                  key={frag.id}
-                  className="absolute overflow-hidden"
-                  style={{ left: frag.originX, top: frag.originY, width: frag.width, height: frag.height }}
-                  initial={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
-                  animate={{ x: frag.tx, y: frag.ty, rotate: frag.rotate, opacity: 0.85, scale: 0.92 }}
-                  transition={{ type: "spring", stiffness: 120, damping: 14, delay: frag.delay }}
-                >
-                  <div
-                    className="w-full h-full rounded-lg shadow-2xl border border-primary/20"
-                    style={{
-                      backgroundImage: `url(${images[selectedImage]})`,
-                      backgroundSize: "300% 300%",
-                      backgroundPosition: `${(frag.id % 3) * 50}% ${Math.floor(frag.id / 3) * 50}%`,
-                    }}
-                  />
-                </motion.div>
-              ))}
-              <motion.div className="absolute inset-0 flex items-center justify-center" initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-                <div className="w-24 h-24 rounded-full gold-gradient opacity-30 blur-2xl" />
-              </motion.div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={`image-${selectedImage}`}
-              className="w-full h-full"
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <img
-                src={images[selectedImage]}
-                alt={name}
-                className="w-full h-full object-cover transition-transform duration-300"
-                style={zoomed ? {
-                  transform: "scale(2.5)",
-                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                } : undefined}
-                draggable={false}
-              />
-            </motion.div>
-          )}
+          <motion.div
+            key={selectedImage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full h-full"
+          >
+            <div
+              className="w-full h-full transition-transform duration-200 ease-out"
+              style={{
+                backgroundImage: `url(${images[selectedImage]})`,
+                backgroundSize: zoom ? "250%" : "cover",
+                backgroundPosition: zoom ? `${zoomPos.x}% ${zoomPos.y}%` : "center",
+                backgroundRepeat: "no-repeat"
+              }}
+            />
+          </motion.div>
         </AnimatePresence>
 
-        {/* Zoom indicator */}
-        {!isExploded && !zoomed && (
-          <motion.div
-            className="absolute top-4 right-4 w-9 h-9 rounded-full glass flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <ZoomIn className="w-4 h-4 text-muted-foreground" />
-          </motion.div>
-        )}
+        {/* Zoom Controls Hint */}
+        <div className="absolute bottom-4 right-4 flex gap-2">
+          <div className="glass px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <SearchIcon className="w-3 h-3" />
+            {zoom ? "Scroll to Explore" : "Hover to Zoom"}
+          </div>
+        </div>
 
-        {zoomed && (
-          <motion.div
-            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-background/80 flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <X className="w-4 h-4 text-foreground" />
-          </motion.div>
-        )}
-
-        {/* Hint */}
-        <motion.div
-          className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full glass text-xs font-medium text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-        >
-          {zoomed ? "Click to exit zoom" : isExploded ? "Tap to reassemble" : "Tap to explore · Double-tap to zoom"}
-        </motion.div>
+        {/* Mobile Hint */}
+        <div className="md:hidden absolute top-4 right-4 glass p-2 rounded-full text-muted-foreground">
+          {zoom ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
+        </div>
       </div>
 
       {/* Thumbnails */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
         {images.map((img, i) => (
           <button
             key={i}
-            onClick={() => { setSelectedImage(i); setIsExploded(false); setZoomed(false); }}
-            className={`w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
-              i === selectedImage ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
+            onClick={() => {
+              setSelectedImage(i);
+              setZoom(false);
+            }}
+            className={`w-20 h-20 shrink-0 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+              i === selectedImage
+                ? "border-primary scale-105 shadow-lg shadow-primary/20"
+                : "border-transparent opacity-50 hover:opacity-100 hover:scale-105"
             }`}
           >
             <img src={img} alt="" className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
