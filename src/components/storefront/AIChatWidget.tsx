@@ -16,7 +16,11 @@ interface DisplayMessage {
   text: string;
   timestamp: Date;
   suggestions?: string[];
+<<<<<<< HEAD
   productLinks?: { name: string; slug: string; image?: string }[];
+=======
+  productLink?: { name: string; slug: string; image?: string };
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
@@ -29,7 +33,11 @@ export default function AIChatWidget() {
     {
       id: "welcome",
       type: "bot",
+<<<<<<< HEAD
       text: "Hey there! 👋 I'm your **ShoeShop AI** assistant.\n\nI can help you find the perfect pair, track orders, process returns, and more. What can I do for you?",
+=======
+      text: "Hello! I'm your **Merchant's Delight AI** assistant. How can I help you today?",
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
       timestamp: new Date(),
       suggestions: INITIAL_SUGGESTIONS,
     },
@@ -101,9 +109,59 @@ export default function AIChatWidget() {
         body: JSON.stringify({ messages: newHistory }),
       });
 
+<<<<<<< HEAD
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
         throw new Error(errData.error || "AI service unavailable");
+=======
+    // Simulated AI Logic
+    setTimeout(() => {
+      let response: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "bot",
+        text: "I'm not sure about that. Would you like to speak with a human agent?",
+        timestamp: new Date(),
+        suggestions: ["Speak to agent", "Main menu"]
+      };
+
+      const lowerText = text.toLowerCase();
+
+      if (lowerText.includes("recommend") || lowerText.includes("shoe") || lowerText.includes("suggest")) {
+        // Find running shoes if specifically asked
+        const isRunning = lowerText.includes("running");
+        const filteredProducts = isRunning 
+          ? products?.filter(p => p.name.toLowerCase().includes("velocity") || p.name.toLowerCase().includes("runner"))
+          : products;
+
+        const randomProduct = (filteredProducts?.length || 0) > 0 
+          ? filteredProducts![Math.floor(Math.random() * filteredProducts!.length)]
+          : products?.[0];
+
+        if (randomProduct) {
+          const imageUrl = randomProduct.product_images?.[0]?.image_url;
+          response = {
+            ...response,
+            text: `### Great Choice! \nBased on your style, I highly recommend the **${randomProduct.name}**! \n\nIt's one of our top-rated pairs featuring premium comfort and modern design.`,
+            productLink: { 
+              name: randomProduct.name, 
+              slug: randomProduct.slug,
+              image: imageUrl
+            },
+            suggestions: ["See more running shoes", "Check price"]
+          };
+        } else {
+          response.text = "I recommend checking out our latest **Air Velocity Pro** for high-performance running!";
+        }
+      } else if (lowerText.includes("return") || lowerText.includes("exchange")) {
+        response = {
+          ...response,
+          text: "To start a return, please visit our **Track Order** page. \n\n*   Enter your order number\n*   Select the items to return\n*   Print your label\n\nWe offer **free returns** within 30 days!",
+          suggestions: ["Go to Track Order", "View Return Policy"]
+        };
+      } else if (lowerText.includes("shipping")) {
+        response.text = "We offer **free standard shipping** on orders over $100! \n\n| Method | Cost | Time |\n| :--- | :--- | :--- |\n| Standard | Free ($100+) | 5-7 days |\n| Express | $19.99 | 2-3 days |";
+        response.suggestions = ["Express shipping rates", "International delivery"];
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
       }
 
       if (!resp.body) throw new Error("No response body");
@@ -202,14 +260,20 @@ export default function AIChatWidget() {
               </button>
             </div>
 
+<<<<<<< HEAD
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-4 sm:px-5 sm:py-5 space-y-4 no-scrollbar">
+=======
+            {/* Chat Messages */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar bg-background/50">
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.type === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`flex gap-2.5 max-w-[88%] ${m.type === "user" ? "flex-row-reverse" : ""}`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.type === "bot" ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
                       {m.type === "bot" ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                     </div>
+<<<<<<< HEAD
                     <div className="space-y-2 min-w-0">
                       <div
                         className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
@@ -226,6 +290,33 @@ export default function AIChatWidget() {
                           m.text
                         )}
                       </div>
+=======
+                    <div className="space-y-2">
+                      <div className={`px-4 py-3 rounded-2xl text-sm prose prose-invert prose-sm ${
+                        m.type === "user" 
+                        ? "bg-primary text-primary-foreground rounded-tr-none" 
+                        : "bg-secondary/80 text-foreground rounded-tl-none border border-border/50"
+                      }`}>
+                        <ReactMarkdown>{m.text}</ReactMarkdown>
+                      </div>
+                      
+                      {m.productLink && (
+                        <Link 
+                          to={`/product/${m.productLink.slug}`}
+                          onClick={() => setIsOpen(false)}
+                          className="flex items-center gap-3 p-2 bg-background border border-primary/20 rounded-xl hover:border-primary/50 transition-all group overflow-hidden"
+                        >
+                          {m.productLink.image && (
+                            <img src={m.productLink.image} alt={m.productLink.name} className="w-12 h-12 rounded-lg object-cover" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Recommended</p>
+                            <p className="text-xs font-bold text-foreground truncate">{m.productLink.name}</p>
+                          </div>
+                          <ShoppingBag className="w-4 h-4 text-primary mr-2 group-hover:scale-110 transition-transform" />
+                        </Link>
+                      )}
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
 
                       {/* Product Links */}
                       {m.productLinks?.map((pl) => (
@@ -277,7 +368,14 @@ export default function AIChatWidget() {
             </div>
 
             {/* Input */}
+<<<<<<< HEAD
             <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="px-3 pb-3 sm:px-5 sm:pb-4 pt-0 shrink-0">
+=======
+            <form 
+              onSubmit={(e) => { e.preventDefault(); handleSend(input); }}
+              className="p-6 bg-background border-t border-border/50"
+            >
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
               <div className="relative">
                 <input
                   value={input}

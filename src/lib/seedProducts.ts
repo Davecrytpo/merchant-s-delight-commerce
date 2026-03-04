@@ -98,17 +98,34 @@ const realProducts = [
 ];
 
 export async function seedProducts() {
+  // 1. Seed Categories if they don't exist
+  const categoriesToSeed = [
+    { name: "Running", slug: "running", description: "Performance shoes for every mile" },
+    { name: "Casual", slug: "casual", description: "Daily style and comfort" },
+    { name: "Training", slug: "training", description: "Cross-training and gym performance" },
+    { name: "Lifestyle", slug: "lifestyle", description: "Street-ready fashion" }
+  ];
+
+  for (const cat of categoriesToSeed) {
+    await supabase.from("categories").upsert(cat, { onConflict: 'slug' });
+  }
+
   const { data: categories } = await supabase.from("categories").select("*");
   if (!categories) return;
 
   const runningCat = categories.find(c => c.slug === "running")?.id;
   const casualCat = categories.find(c => c.slug === "casual")?.id;
+  const trainingCat = categories.find(c => c.slug === "training")?.id;
 
   for (const product of realProducts) {
+    let catId = casualCat;
+    if (product.name.includes("Runner") || product.name.includes("Velocity")) catId = runningCat;
+    if (product.name.includes("Training")) catId = trainingCat;
+
     const { data: p, error } = await supabase.from("products").upsert({
       ...product,
-      category_id: product.name.includes("Runner") || product.name.includes("Velocity") ? runningCat : casualCat
-    }).select().single();
+      category_id: catId
+    }, { onConflict: 'slug' }).select().single();
 
     if (p) {
       // Add a dummy image
@@ -116,15 +133,17 @@ export async function seedProducts() {
         product_id: p.id,
         image_url: `https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80`,
         position: 0
-      });
+      }, { onConflict: 'product_id,image_url' });
       
       // Add a variant
       await supabase.from("product_variants").upsert({
         product_id: p.id,
         size: "10",
         color: "Black",
+        color_hex: "#000000",
+        price: product.price,
         stock: 50
-      });
+      }, { onConflict: 'product_id,size,color' });
     }
   }
   console.log("Seeding complete!");
