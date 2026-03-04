@@ -125,6 +125,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          discount: number
           id: string
           items: Json
           notes: string | null
@@ -142,6 +143,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          discount?: number
           id?: string
           items?: Json
           notes?: string | null
@@ -159,6 +161,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          discount?: number
           id?: string
           items?: Json
           notes?: string | null
@@ -370,6 +373,7 @@ export type Database = {
           id: string
           is_admin: boolean | null
           phone: string | null
+          reward_points: number
           state: string | null
           updated_at: string
           user_id: string
@@ -386,6 +390,7 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           phone?: string | null
+          reward_points?: number
           state?: string | null
           updated_at?: string
           user_id: string
@@ -402,6 +407,7 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           phone?: string | null
+          reward_points?: number
           state?: string | null
           updated_at?: string
           user_id?: string

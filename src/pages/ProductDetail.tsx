@@ -82,14 +82,18 @@ export default function ProductDetail() {
       toast.error("Please select size and color");
       return;
     }
-    // Normalize product for cart context if necessary
-    const cartProduct = {
+    // Normalize DB product to match Product interface for cart
+    const cartProduct: any = {
       ...product,
-      category: product.categories?.name || "Uncategorized",
-      images: product.product_images?.map((img: any) => img.image_url) || []
+      category: (product as any).categories?.name || "Uncategorized",
+      longDescription: product.long_description || product.description || "",
+      images: (product as any).product_images?.map((img: any) => img.image_url) || [],
+      variants: (product as any).product_variants || [],
+      reviewCount: product.review_count || 0,
+      tags: [],
     };
     
-    addItem(cartProduct, selectedVariant, quantity);
+    addItem(cartProduct, { ...selectedVariant, colorHex: selectedVariant.color_hex || "#000" } as any, quantity);
     toast.success(`${product.name} added to cart`);
   };
 
@@ -181,7 +185,7 @@ export default function ProductDetail() {
               <button onClick={handleAddToCart} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 text-lg">
                 <ShoppingBag className="w-5 h-5" /> Add to Cart
               </button>
-              <button onClick={() => { toggleItem(product); toast.success(wishlisted ? "Removed" : "Added to wishlist"); }} className={`w-14 rounded-xl flex items-center justify-center transition-all ${wishlisted ? "bg-primary text-primary-foreground" : "glass glass-hover"}`}>
+              <button onClick={() => { toggleItem(product as any); toast.success(wishlisted ? "Removed" : "Added to wishlist"); }} className={`w-14 rounded-xl flex items-center justify-center transition-all ${wishlisted ? "bg-primary text-primary-foreground" : "glass glass-hover"}`}>
                 <Heart className="w-5 h-5" fill={wishlisted ? "currentColor" : "none"} />
               </button>
             </div>
@@ -216,7 +220,18 @@ export default function ProductDetail() {
           <div className="mt-16">
             <h2 className="font-display text-2xl font-bold mb-8">You May Also Like</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {related.map((p: any, i: number) => <ProductCard key={p.id} product={p} index={i} />)}
+              {related.map((p: any, i: number) => {
+                const normalized = {
+                  ...p,
+                  category: p.categories?.name || "Uncategorized",
+                  longDescription: p.long_description || p.description || "",
+                  images: p.product_images?.map((img: any) => img.image_url) || [],
+                  variants: p.product_variants || [],
+                  reviewCount: p.review_count || 0,
+                  tags: [],
+                };
+                return <ProductCard key={p.id} product={normalized} index={i} />;
+              })}
             </div>
           </div>
         )}
