@@ -29,24 +29,13 @@ CREATE TRIGGER on_order_delivered_award_points
   FOR EACH ROW
   EXECUTE FUNCTION public.award_purchase_points();
 
--- Create trigger to award points on review submission
-CREATE OR REPLACE FUNCTION public.award_review_points()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = 'public'
-AS $$
+-- Legacy cleanup: review points are handled on public.reviews by the
+-- on_review_approved_award_points trigger in later schema migrations.
+DO $$
 BEGIN
-  -- Award 50 points per review
-  UPDATE public.profiles
-  SET reward_points = reward_points + 50
-  WHERE user_id = NEW.user_id;
-  RETURN NEW;
-END;
-$$;
+  IF to_regclass('public.product_reviews') IS NOT NULL THEN
+    EXECUTE 'DROP TRIGGER IF EXISTS on_review_created_award_points ON public.product_reviews';
+  END IF;
+END $$;
 
-DROP TRIGGER IF EXISTS on_review_created_award_points ON public.product_reviews;
-CREATE TRIGGER on_review_created_award_points
-  AFTER INSERT ON public.product_reviews
-  FOR EACH ROW
-  EXECUTE FUNCTION public.award_review_points();
+DROP FUNCTION IF EXISTS public.award_review_points();
