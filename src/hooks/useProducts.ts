@@ -2,6 +2,57 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const attachProductRelations = async (products: any[]) => {
+  if (!products?.length) return [];
+
+  const productIds = products.map((p) => p.id);
+  const categoryIds = Array.from(
+    new Set(products.map((p) => p.category_id).filter(Boolean))
+  );
+
+  const [imagesRes, variantsRes, categoriesRes] = await Promise.all([
+    supabase
+      .from("product_images")
+      .select("*")
+      .in("product_id", productIds)
+      .order("position", { ascending: true }),
+    supabase.from("product_variants").select("*").in("product_id", productIds),
+    categoryIds.length
+      ? supabase.from("categories").select("*").in("id", categoryIds as string[])
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (imagesRes.error) throw imagesRes.error;
+  if (variantsRes.error) throw variantsRes.error;
+  if (categoriesRes.error) throw categoriesRes.error;
+
+  const imagesByProduct = new Map<string, any[]>();
+  for (const img of imagesRes.data || []) {
+    const list = imagesByProduct.get(img.product_id) || [];
+    list.push(img);
+    imagesByProduct.set(img.product_id, list);
+  }
+
+  const variantsByProduct = new Map<string, any[]>();
+  for (const variant of variantsRes.data || []) {
+    const list = variantsByProduct.get(variant.product_id) || [];
+    list.push(variant);
+    variantsByProduct.set(variant.product_id, list);
+  }
+
+  const categoriesById = new Map<string, any>();
+  for (const category of categoriesRes.data || []) {
+    categoriesById.set(category.id, category);
+  }
+
+  return products.map((product) => ({
+    ...product,
+    product_images: imagesByProduct.get(product.id) || [],
+    product_variants: variantsByProduct.get(product.id) || [],
+    categories: product.category_id ? categoriesById.get(product.category_id) || null : null,
+  }));
+};
+
 export const useProducts = (options: { 
   category?: string; 
   featured?: boolean; 
@@ -13,12 +64,7 @@ export const useProducts = (options: {
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select(`
-          *,
-          product_images (*),
-          product_variants (*),
-          categories (*)
-        `);
+        .select("*");
 
       if (options.category) {
         query = query.eq("category_id", options.category);
@@ -32,7 +78,7 @@ export const useProducts = (options: {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return attachProductRelations(data || []);
     },
   });
 };
@@ -45,12 +91,7 @@ export const useProduct = (idOrSlug: string) => {
       
       let query = supabase
         .from("products")
-        .select(`
-          *,
-          product_images (*),
-          product_variants (*),
-          categories (*)
-        `);
+        .select("*");
 
       if (isUuid) {
         query = query.eq("id", idOrSlug);
@@ -60,7 +101,8 @@ export const useProduct = (idOrSlug: string) => {
 
       const { data, error } = await query.single();
       if (error) throw error;
-      return data;
+      const withRelations = await attachProductRelations([data]);
+      return withRelations[0] || null;
     },
   });
 };
