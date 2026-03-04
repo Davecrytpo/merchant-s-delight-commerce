@@ -36,7 +36,6 @@ const COUNTRIES = [
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { user, profile, refreshProfile } = useAuth();
-  const { data: shippingMethods, isLoading: shippingLoading } = useShippingMethods(formData.country);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
@@ -59,6 +58,8 @@ export default function Checkout() {
     zip: profile?.zip_code || "",
     country: profile?.country || "US",
   });
+
+  const { data: shippingMethods, isLoading: shippingLoading } = useShippingMethods(formData.country);
 
   // Auto-detect delivery type based on country
   useEffect(() => {
@@ -270,10 +271,6 @@ export default function Checkout() {
                   <input className={inputClass} placeholder="Last Name" value={formData.lastName} onChange={(e) => update("lastName", e.target.value)} />
                 </div>
                 <input className={inputClass} placeholder="Email" type="email" value={formData.email} onChange={(e) => update("email", e.target.value)} />
-<<<<<<< HEAD
-                <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
-                <input className={inputClass} placeholder="Street Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />
-=======
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Country</label>
@@ -282,12 +279,9 @@ export default function Checkout() {
                       value={formData.country} 
                       onChange={(e) => update("country", e.target.value)}
                     >
-                      <option value="US">United States (USPS)</option>
-                      <option value="CA">Canada (DHL)</option>
-                      <option value="GB">United Kingdom (DHL)</option>
-                      <option value="AU">Australia (DHL)</option>
-                      <option value="DE">Germany (DHL)</option>
-                      <option value="FR">France (DHL)</option>
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -295,42 +289,25 @@ export default function Checkout() {
                     <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
                   </div>
                 </div>
-                <input className={inputClass} placeholder="Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />  
->>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
+                <input className={inputClass} placeholder="Street Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <input className={inputClass} placeholder="City" value={formData.city} onChange={(e) => update("city", e.target.value)} />
                   <input className={inputClass} placeholder="State / Province" value={formData.state} onChange={(e) => update("state", e.target.value)} />
                   <input className={inputClass} placeholder="ZIP / Postal Code" value={formData.zip} onChange={(e) => update("zip", e.target.value)} />
                 </div>
 
-                {/* Country selector */}
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
-                    <Globe className="w-3.5 h-3.5 inline mr-1.5" />
-                    Delivery Country
-                  </label>
-                  <select
-                    value={formData.country}
-                    onChange={(e) => update("country", e.target.value)}
-                    className={inputClass}
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name}</option>
-                    ))}
-                  </select>
-                  <div className="mt-2 flex items-center gap-2">
-                    {formData.country === "US" ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
-                        <Flag className="w-3 h-3" />
-                        <span>Domestic shipping via <strong>USPS</strong></span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
-                        <Globe className="w-3 h-3" />
-                        <span>International shipping via <strong>DHL</strong></span>
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-2 flex items-center gap-2">
+                  {formData.country === "US" ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
+                      <Flag className="w-3 h-3" />
+                      <span>Domestic shipping via <strong>USPS</strong></span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
+                      <Globe className="w-3 h-3" />
+                      <span>International shipping via <strong>DHL</strong></span>
+                    </div>
+                  )}
                 </div>
 
                 <button onClick={() => validateStep(0) && setStep(1)} className="gold-gradient text-background font-semibold w-full py-4 rounded-xl hover:opacity-90">
