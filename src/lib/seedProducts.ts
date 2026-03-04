@@ -105,8 +105,18 @@ const realProducts = [
   },
 ];
 
-export async function seedProducts() {
+export async function seedProducts(clearExisting: boolean = false) {
   console.log("Starting seeding...");
+
+  if (clearExisting) {
+    console.log("Clearing existing data...");
+    // Order matters because of foreign keys
+    await supabase.from("product_variants").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("product_images").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("reviews").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase.from("categories").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  }
 
   // 1. Seed Categories if they don't exist
   const categoriesToSeed = [

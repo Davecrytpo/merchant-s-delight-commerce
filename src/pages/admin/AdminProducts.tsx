@@ -1,15 +1,35 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2, Loader2, Save, X, Image as ImageIcon, Layers, Package, Trash } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Loader2, Save, X, Image as ImageIcon, Layers, Package, Trash, RefreshCcw } from "lucide-react";
 import { useProducts, useAdminProductMutations, useCategories } from "@/hooks/useProducts";
 import { toast } from "sonner";
+import { seedProducts } from "@/lib/seedProducts";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AdminProducts() {
+  const queryClient = useQueryClient();
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories } = useCategories();
   const { createProduct, updateProduct, deleteProduct } = useAdminProductMutations();
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  
+  const handleSeed = async () => {
+    if (!window.confirm("This will restore default products and categories. Continue?")) return;
+    
+    setIsSeeding(true);
+    try {
+      await seedProducts(true); // Clear and re-seed
+      toast.success("Database synced successfully! All products restored.");
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    } catch (error: any) {
+      toast.error("Failed to sync database: " + error.message);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
   
   const [formData, setFormData] = useState({
     name: "", slug: "", price: 0, original_price: 0, category_id: "", brand: "ShoeShop", 
@@ -90,12 +110,22 @@ export default function AdminProducts() {
           <p className="text-sm text-muted-foreground">Add and manage your store inventory</p>
         </div>
         {!isAdding && !editingId && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="gold-gradient text-background font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
-          >
-            <Plus className="w-5 h-5" /> Add New Product
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={handleSeed}
+              disabled={isSeeding}
+              className="bg-secondary text-foreground font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2 border border-border hover:bg-secondary/80 transition-all disabled:opacity-50"
+            >
+              {isSeeding ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCcw className="w-5 h-5" />}
+              Sync Database
+            </button>
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="gold-gradient text-background font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
+            >
+              <Plus className="w-5 h-5" /> Add New Product
+            </button>
+          </div>
         )}
       </div>
 
