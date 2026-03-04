@@ -36,7 +36,7 @@ const COUNTRIES = [
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { user, profile, refreshProfile } = useAuth();
-  const { data: shippingMethods, isLoading: shippingLoading } = useShippingMethods();
+  const { data: shippingMethods, isLoading: shippingLoading } = useShippingMethods(formData.country);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
@@ -270,8 +270,33 @@ export default function Checkout() {
                   <input className={inputClass} placeholder="Last Name" value={formData.lastName} onChange={(e) => update("lastName", e.target.value)} />
                 </div>
                 <input className={inputClass} placeholder="Email" type="email" value={formData.email} onChange={(e) => update("email", e.target.value)} />
+<<<<<<< HEAD
                 <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
                 <input className={inputClass} placeholder="Street Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />
+=======
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Country</label>
+                    <select 
+                      className={inputClass} 
+                      value={formData.country} 
+                      onChange={(e) => update("country", e.target.value)}
+                    >
+                      <option value="US">United States (USPS)</option>
+                      <option value="CA">Canada (DHL)</option>
+                      <option value="GB">United Kingdom (DHL)</option>
+                      <option value="AU">Australia (DHL)</option>
+                      <option value="DE">Germany (DHL)</option>
+                      <option value="FR">France (DHL)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Phone</label>
+                    <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
+                  </div>
+                </div>
+                <input className={inputClass} placeholder="Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />  
+>>>>>>> 4560658e (Fix database schema conflicts, update checkout with USPS/DHL shipping, and enhance AI Chat Widget with markdown/images)
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <input className={inputClass} placeholder="City" value={formData.city} onChange={(e) => update("city", e.target.value)} />
                   <input className={inputClass} placeholder="State / Province" value={formData.state} onChange={(e) => update("state", e.target.value)} />
