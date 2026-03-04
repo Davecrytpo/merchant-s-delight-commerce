@@ -3,29 +3,35 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
 
 const STEPS = ["Shipping", "Carrier", "Payment"];
 
-// Helper to load Stripe from CDN
-const loadStripeFromCDN = () => {
-  return new Promise((resolve) => {
-    if ((window as any).Stripe) {
-      resolve((window as any).Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder"));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://js.stripe.com/v3/";
-    script.type = "text/javascript";
-    script.onload = () => {
-      resolve((window as any).Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder"));
-    };
-    document.head.appendChild(script);
-  });
-};
+const COUNTRIES = [
+  { code: "US", name: "United States" },
+  { code: "CA", name: "Canada" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "AU", name: "Australia" },
+  { code: "JP", name: "Japan" },
+  { code: "NG", name: "Nigeria" },
+  { code: "GH", name: "Ghana" },
+  { code: "ZA", name: "South Africa" },
+  { code: "KE", name: "Kenya" },
+  { code: "IN", name: "India" },
+  { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "SG", name: "Singapore" },
+  { code: "KR", name: "South Korea" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "NL", name: "Netherlands" },
+];
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
@@ -39,8 +45,8 @@ export default function Checkout() {
   const [orderNumber, setOrderNumber] = useState("");
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
-  
   const [usePoints, setUsePoints] = useState(false);
+  const [deliveryType, setDeliveryType] = useState<"domestic" | "international" | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: profile?.full_name?.split(" ")[0] || "",
@@ -51,8 +57,18 @@ export default function Checkout() {
     city: profile?.city || "",
     state: profile?.state || "",
     zip: profile?.zip_code || "",
-    country: "US",
+    country: profile?.country || "US",
   });
+
+  // Auto-detect delivery type based on country
+  useEffect(() => {
+    if (formData.country === "US") {
+      setDeliveryType("domestic");
+    } else {
+      setDeliveryType("international");
+    }
+    setSelectedMethodId(null); // Reset carrier selection when country changes
+  }, [formData.country]);
 
   // Handle Stripe redirect results
   useEffect(() => {
@@ -67,9 +83,29 @@ export default function Checkout() {
     }
   }, [searchParams, clearCart]);
 
-  const selectedMethod: ShippingMethod | undefined = useMemo(() => 
-    shippingMethods?.find((m: ShippingMethod) => m.id === selectedMethodId) || shippingMethods?.[0]
-  , [shippingMethods, selectedMethodId]);
+  // Filter shipping methods: USPS for domestic US, DHL for international
+  const filteredShippingMethods = useMemo(() => {
+    if (!shippingMethods) return [];
+    if (deliveryType === "domestic") {
+      return shippingMethods.filter((m: ShippingMethod) => m.carrier.toUpperCase().includes("USPS"));
+    }
+    if (deliveryType === "international") {
+      return shippingMethods.filter((m: ShippingMethod) => m.carrier.toUpperCase().includes("DHL"));
+    }
+    return shippingMethods;
+  }, [shippingMethods, deliveryType]);
+
+  // Auto-select first available method
+  useEffect(() => {
+    if (filteredShippingMethods.length > 0 && !selectedMethodId) {
+      setSelectedMethodId(filteredShippingMethods[0].id);
+    }
+  }, [filteredShippingMethods, selectedMethodId]);
+
+  const selectedMethod: ShippingMethod | undefined = useMemo(
+    () => filteredShippingMethods?.find((m: ShippingMethod) => m.id === selectedMethodId) || filteredShippingMethods?.[0],
+    [filteredShippingMethods, selectedMethodId]
+  );
 
   const shippingCost = useMemo(() => {
     if (!selectedMethod) return 0;
@@ -85,13 +121,13 @@ export default function Checkout() {
   }, [usePoints, profile?.reward_points, totalPrice]);
 
   const tax = Math.max(0, (totalPrice - pointsDiscount)) * 0.08;
-  const total = Math.max(0, (totalPrice - pointsDiscount + shippingCost + tax));
+  const total = Math.max(0, totalPrice - pointsDiscount + shippingCost + tax);
 
   const update = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
 
   const validateStep = (s: number): boolean => {
     if (s === 0) {
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city || !formData.state || !formData.zip) { 
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.address || !formData.city || !formData.state || !formData.zip) {
         toast.error("Please fill in all shipping fields");
         return false;
       }
@@ -113,11 +149,10 @@ export default function Checkout() {
       toast.error("Your cart is empty");
       return;
     }
-    
+
     setSubmitting(true);
     setPaymentStatus("processing");
 
-    const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
     const orderItems = items.map((i) => ({
       product_id: i.product.id,
       product_name: i.product.name,
@@ -125,94 +160,42 @@ export default function Checkout() {
       variant_color: i.variant.color,
       quantity: i.quantity,
       price: i.variant.price,
+      image: i.product.images?.[0],
     }));
 
     try {
-      // 1. DATABASE-FIRST: Save the order as 'pending' BEFORE redirecting
-      // This ensures you never lose an order record even if Stripe fails or is canceled
-      const { error: dbError } = await supabase.from("orders").insert({
-        user_id: user.id,
-        order_number: orderNum,
-        status: "pending",
-        items: orderItems as any,
-        subtotal: totalPrice,
-        shipping: shippingCost,
-        tax: tax,
-        total: total,
-        discount: pointsDiscount,
-        shipping_address: {
-          name: `${formData.firstName} ${formData.lastName}`,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-          country: formData.country,
-          carrier: selectedMethod?.carrier,
-          method: selectedMethod?.name
+      const { data, error: funcError } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          items: orderItems,
+          shippingCost,
+          tax,
+          shippingAddress: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zip: formData.zip,
+            country: formData.country,
+            carrier: selectedMethod?.carrier,
+            method: selectedMethod?.name,
+          },
+          shippingMethod: `${selectedMethod?.carrier} ${selectedMethod?.name}`,
         },
-        payment_method: "stripe"
       });
 
-      if (dbError) throw new Error(`Database error: ${dbError.message}`);
+      if (funcError) throw new Error(funcError.message || "Payment service error");
+      if (!data?.url) throw new Error("No checkout URL received");
 
-      // 2. STRIPE INVOCATION: Attempt Edge Function first
-      let sessionId = null;
-      try {
-        const { data, error: funcError } = await supabase.functions.invoke('create-checkout-session', {
-          body: {
-            items: orderItems,
-            user_id: user.id,
-            order_number: orderNum,
-            customer_email: formData.email,
-            total: total
-          }
-        });
-        
-        if (!funcError && data?.id) {
-          sessionId = data.id;
-        }
-      } catch (e) {
-        console.warn("Edge Function not available, using high-fidelity client-side checkout...");
-      }
-
-      // 3. REDIRECT: Use Session ID if available, otherwise use direct Checkout (Production Standard)
-      const stripe: any = await loadStripeFromCDN();
-      if (!stripe) throw new Error("Stripe engine failed to load. Please check your connection.");
-
-      if (sessionId) {
-        const { error: redirectError } = await stripe.redirectToCheckout({ sessionId });
-        if (redirectError) throw redirectError;
-      } else {
-        // PRODUCTION FALLBACK: Direct integration if Edge Function is not deployed
-        // This is still 100% production ready and secure.
-        toast.info("Connecting to secure payment gateway...");
-        const { error: redirectError } = await stripe.redirectToCheckout({
-          lineItems: items.map(item => ({
-            price_data: {
-              currency: 'usd',
-              product_data: { name: item.product.name },
-              unit_amount: Math.round(item.variant.price * 100),
-            },
-            quantity: item.quantity,
-          })),
-          mode: 'payment',
-          successUrl: `${window.location.origin}/account?success=true&order=${orderNum}`,
-          cancelUrl: `${window.location.origin}/checkout?canceled=true`,
-          customerEmail: formData.email,
-        });
-        if (redirectError) throw redirectError;
-      }
-
+      window.location.href = data.url;
     } catch (error: any) {
       console.error("Checkout Error:", error);
       setPaymentStatus("error");
       toast.error(error.message || "Payment service temporarily unavailable. Please try again.");
-    } finally {
       setSubmitting(false);
     }
   };
 
-  if (paymentStatus === "processing") {
+  if (paymentStatus === "processing" && submitting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-8 max-w-sm px-6">
@@ -223,14 +206,11 @@ export default function Checkout() {
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-display font-bold">Processing Payment</h2>
-            <p className="text-muted-foreground text-sm italic">Hold on, we're securing your transaction with Stripe servers...</p>
+            <h2 className="text-xl sm:text-2xl font-display font-bold">Processing Payment</h2>
+            <p className="text-muted-foreground text-sm">Redirecting to Stripe secure checkout...</p>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
-              <motion.div initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }} className="h-full w-1/2 gold-gradient" />
-            </div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">Authorizing...</span>
+          <div className="h-1 w-full bg-secondary rounded-full overflow-hidden">
+            <motion.div initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }} className="h-full w-1/2 gold-gradient" />
           </div>
         </motion.div>
       </div>
@@ -262,6 +242,7 @@ export default function Checkout() {
     <div className="container mx-auto px-4 py-6 md:py-8">
       <h1 className="font-display text-2xl md:text-3xl font-bold mb-6 md:mb-8">Checkout</h1>
 
+      {/* Steps */}
       <div className="flex items-center gap-3 md:gap-4 mb-8 overflow-x-auto pb-4">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2 shrink-0">
@@ -277,40 +258,96 @@ export default function Checkout() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <div className="lg:col-span-2">
           <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass rounded-2xl p-4 md:p-6">
+            {/* Step 0: Shipping Address */}
             {step === 0 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4"><MapPin className="w-5 h-5 text-primary" /><h2 className="font-display text-lg md:text-xl font-bold">Shipping Address</h2></div>
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <h2 className="font-display text-lg md:text-xl font-bold">Shipping Address</h2>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input className={inputClass} placeholder="First Name" value={formData.firstName} onChange={(e) => update("firstName", e.target.value)} />
                   <input className={inputClass} placeholder="Last Name" value={formData.lastName} onChange={(e) => update("lastName", e.target.value)} />
                 </div>
                 <input className={inputClass} placeholder="Email" type="email" value={formData.email} onChange={(e) => update("email", e.target.value)} />
-                <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />        
-                <input className={inputClass} placeholder="Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />  
+                <input className={inputClass} placeholder="Phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
+                <input className={inputClass} placeholder="Street Address" value={formData.address} onChange={(e) => update("address", e.target.value)} />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <input className={inputClass} placeholder="City" value={formData.city} onChange={(e) => update("city", e.target.value)} />
-                  <input className={inputClass} placeholder="State" value={formData.state} onChange={(e) => update("state", e.target.value)} />      
-                  <input className={inputClass} placeholder="ZIP" value={formData.zip} onChange={(e) => update("zip", e.target.value)} />
+                  <input className={inputClass} placeholder="State / Province" value={formData.state} onChange={(e) => update("state", e.target.value)} />
+                  <input className={inputClass} placeholder="ZIP / Postal Code" value={formData.zip} onChange={(e) => update("zip", e.target.value)} />
                 </div>
+
+                {/* Country selector */}
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
+                    <Globe className="w-3.5 h-3.5 inline mr-1.5" />
+                    Delivery Country
+                  </label>
+                  <select
+                    value={formData.country}
+                    onChange={(e) => update("country", e.target.value)}
+                    className={inputClass}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div className="mt-2 flex items-center gap-2">
+                    {formData.country === "US" ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
+                        <Flag className="w-3 h-3" />
+                        <span>Domestic shipping via <strong>USPS</strong></span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
+                        <Globe className="w-3 h-3" />
+                        <span>International shipping via <strong>DHL</strong></span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <button onClick={() => validateStep(0) && setStep(1)} className="gold-gradient text-background font-semibold w-full py-4 rounded-xl hover:opacity-90">
                   Continue to Shipping Method
                 </button>
               </div>
             )}
 
+            {/* Step 1: Carrier Selection */}
             {step === 1 && (
               <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4"><Truck className="w-5 h-5 text-primary" /><h2 className="font-display text-lg md:text-xl font-bold">Shipping Method</h2></div>
-                {shippingLoading ? <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin" /></div> : (
+                <div className="flex items-center gap-2 mb-4">
+                  <Truck className="w-5 h-5 text-primary" />
+                  <h2 className="font-display text-lg md:text-xl font-bold">
+                    {deliveryType === "domestic" ? "USPS Shipping Options" : "DHL International Shipping"}
+                  </h2>
+                </div>
+
+                <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
+                  {deliveryType === "domestic"
+                    ? "📦 Shipping within the United States via USPS — America's trusted postal service."
+                    : "🌍 International shipping via DHL — Fast, reliable worldwide delivery."}
+                </div>
+
+                {shippingLoading ? (
+                  <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin" /></div>
+                ) : filteredShippingMethods.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Truck className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p className="font-medium">No shipping methods available for this region yet.</p>
+                    <p className="text-xs mt-1">Please contact support or try a different delivery country.</p>
+                  </div>
+                ) : (
                   <div className="space-y-3">
-                    {shippingMethods?.map((m: ShippingMethod) => (
-                      <button 
+                    {filteredShippingMethods.map((m: ShippingMethod) => (
+                      <button
                         key={m.id}
                         onClick={() => setSelectedMethodId(m.id)}
                         className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between ${
-                          (selectedMethodId === m.id || (!selectedMethodId && shippingMethods[0].id === m.id)) 
-                          ? "border-primary bg-primary/5 ring-1 ring-primary" 
-                          : "border-border hover:border-border/80 bg-secondary/30"
+                          selectedMethodId === m.id
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border hover:border-border/80 bg-secondary/30"
                         }`}
                       >
                         <div className="flex items-center gap-3 md:gap-4">
@@ -318,8 +355,8 @@ export default function Checkout() {
                             <Truck className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-bold text-sm">{m.carrier} {m.name}</p>
-                            <p className="text-xs text-muted-foreground">{m.estimated_days} • {m.description}</p>
+                            <p className="font-bold text-sm">{m.carrier} — {m.name}</p>
+                            <p className="text-xs text-muted-foreground">{m.estimated_days}{m.description ? ` • ${m.description}` : ""}</p>
                           </div>
                         </div>
                         <div className="text-right shrink-0 ml-2">
@@ -334,15 +371,21 @@ export default function Checkout() {
                 )}
                 <div className="flex gap-3">
                   <button onClick={() => setStep(0)} className="flex-1 bg-secondary text-foreground font-semibold py-4 rounded-xl hover:bg-secondary/80 text-sm">Back</button>
-                  <button onClick={() => validateStep(1) && setStep(2)} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90 text-sm">Continue to Review</button>
+                  <button onClick={() => validateStep(1) && setStep(2)} className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90 text-sm" disabled={!selectedMethod}>
+                    Continue to Review
+                  </button>
                 </div>
               </div>
             )}
 
+            {/* Step 2: Review & Pay */}
             {step === 2 && (
               <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4"><CreditCard className="w-5 h-5 text-primary" /><h2 className="font-display text-lg md:text-xl font-bold">Review & Pay</h2></div>
-                
+                <div className="flex items-center gap-2 mb-4">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  <h2 className="font-display text-lg md:text-xl font-bold">Review & Pay</h2>
+                </div>
+
                 {/* Order items */}
                 <div className="space-y-3">
                   {items.map((item) => (
@@ -361,11 +404,19 @@ export default function Checkout() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm bg-secondary/30 rounded-xl p-4">
                   <div>
                     <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Ship to</p>
-                    <p className="font-medium text-sm">{formData.firstName} {formData.lastName}<br/>{formData.address}<br/>{formData.city}, {formData.state} {formData.zip}</p>
+                    <p className="font-medium text-sm">
+                      {formData.firstName} {formData.lastName}<br />
+                      {formData.address}<br />
+                      {formData.city}, {formData.state} {formData.zip}<br />
+                      {COUNTRIES.find((c) => c.code === formData.country)?.name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-1 uppercase text-[10px] font-bold tracking-wider">Shipping Method</p>
-                    <p className="font-medium text-sm">{selectedMethod?.carrier} {selectedMethod?.name}<br/><span className="text-xs text-muted-foreground">{selectedMethod?.estimated_days}</span></p>
+                    <p className="font-medium text-sm">
+                      {selectedMethod?.carrier} — {selectedMethod?.name}<br />
+                      <span className="text-xs text-muted-foreground">{selectedMethod?.estimated_days}</span>
+                    </p>
                   </div>
                 </div>
 
@@ -376,9 +427,9 @@ export default function Checkout() {
 
                 <div className="flex gap-3">
                   <button onClick={() => setStep(1)} className="flex-1 bg-secondary text-foreground font-semibold py-4 rounded-xl hover:bg-secondary/80 text-sm">Back</button>
-                  <button 
-                    onClick={handleStripeCheckout} 
-                    disabled={submitting} 
+                  <button
+                    onClick={handleStripeCheckout}
+                    disabled={submitting}
                     className="flex-1 gold-gradient text-background font-semibold py-4 rounded-xl hover:opacity-90 disabled:opacity-50 text-sm"
                   >
                     {submitting ? (
@@ -393,9 +444,10 @@ export default function Checkout() {
           </motion.div>
         </div>
 
+        {/* Order Summary Sidebar */}
         <div className="glass rounded-2xl p-4 md:p-6 h-fit lg:sticky lg:top-24 space-y-4">
           <h2 className="font-display text-lg md:text-xl font-bold">Summary</h2>
-          
+
           {/* Reward Points UI */}
           {user && (profile?.reward_points || 0) >= 100 && (
             <div className={`p-4 rounded-xl border transition-all ${usePoints ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border bg-secondary/20"}`}>
@@ -404,40 +456,77 @@ export default function Checkout() {
                   <Coins className={`w-4 h-4 ${usePoints ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="text-xs font-bold uppercase tracking-wider text-[10px]">ShoeShop Rewards</span>
                 </div>
-                <input 
-                  type="checkbox" 
-                  checked={usePoints} 
-                  onChange={(e) => setUsePoints(e.target.checked)}
-                  className="w-4 h-4 accent-primary cursor-pointer"
-                />
+                <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} className="w-4 h-4 accent-primary cursor-pointer" />
               </div>
-              <p className="text-[10px] text-muted-foreground mb-3">You have <span className="text-foreground font-bold">{profile?.reward_points}</span> points available.</p>
+              <p className="text-[10px] text-muted-foreground mb-3">
+                You have <span className="text-foreground font-bold">{profile?.reward_points}</span> points available.
+              </p>
               {usePoints ? (
                 <div className="flex items-center justify-between text-primary animate-in fade-in slide-in-from-top-1">
                   <span className="text-[10px] font-medium">Applied Discount</span>
                   <span className="font-bold text-xs">-${pointsDiscount.toFixed(2)}</span>
                 </div>
               ) : (
-                <p className="text-[10px] italic">Redeem {Math.floor((profile?.reward_points || 0) / 100) * 100} points for a <span className="text-primary font-bold">${(Math.floor((profile?.reward_points || 0) / 100) * 10).toFixed(2)}</span> discount.</p>
+                <p className="text-[10px] italic">
+                  Redeem {Math.floor((profile?.reward_points || 0) / 100) * 100} points for a{" "}
+                  <span className="text-primary font-bold">${(Math.floor((profile?.reward_points || 0) / 100) * 10).toFixed(2)}</span> discount.
+                </p>
               )}
             </div>
           )}
 
+          {/* Points info for users without enough */}
+          {user && (profile?.reward_points || 0) > 0 && (profile?.reward_points || 0) < 100 && (
+            <div className="p-3 rounded-xl border border-border bg-secondary/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Coins className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Rewards Progress</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                You have <strong>{profile?.reward_points}</strong> pts. Earn <strong>{100 - (profile?.reward_points || 0)}</strong> more to unlock a $10 discount!
+              </p>
+              <div className="mt-2 h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="h-full gold-gradient rounded-full transition-all" style={{ width: `${Math.min(100, (profile?.reward_points || 0))}%` }} />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal ({items.length} items)</span><span>${totalPrice.toFixed(2)}</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
+              <span>${totalPrice.toFixed(2)}</span>
+            </div>
             {pointsDiscount > 0 && (
-              <div className="flex justify-between text-primary"><span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Reward Discount</span><span>-${pointsDiscount.toFixed(2)}</span></div>
+              <div className="flex justify-between text-primary">
+                <span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Reward Discount</span>
+                <span>-${pointsDiscount.toFixed(2)}</span>
+              </div>
             )}
-            <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>${tax.toFixed(2)}</span></div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Shipping</span>
+              <span>{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tax</span>
+              <span>${tax.toFixed(2)}</span>
+            </div>
           </div>
           <div className="border-t border-border pt-3 flex justify-between font-bold text-lg">
-            <span>Total</span><span className="gold-text">${total.toFixed(2)}</span>
+            <span>Total</span>
+            <span className="gold-text">${total.toFixed(2)}</span>
           </div>
           {selectedMethod && (
             <div className="flex items-start gap-2 text-[10px] text-muted-foreground bg-secondary/20 p-2 rounded-lg">
-              <Truck className="w-3 h-3 text-primary shrink-0 mt-0.5" /> 
+              <Truck className="w-3 h-3 text-primary shrink-0 mt-0.5" />
               <span>Shipping via {selectedMethod.carrier} ({selectedMethod.estimated_days})</span>
+            </div>
+          )}
+
+          {/* Points earning info */}
+          {user && (
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-primary/5 p-2 rounded-lg border border-primary/10">
+              <Coins className="w-3 h-3 text-primary shrink-0" />
+              <span>You'll earn <strong className="text-primary">{Math.max(1, Math.floor(total))} pts</strong> from this purchase!</span>
             </div>
           )}
         </div>

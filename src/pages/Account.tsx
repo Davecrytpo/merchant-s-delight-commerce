@@ -1,10 +1,29 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, TrendingUp, Coins } from "lucide-react";
+import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, Coins, Award, Globe } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useOrders } from "@/hooks/useOrders";
+
+const COUNTRIES = [
+  { code: "US", name: "United States" },
+  { code: "CA", name: "Canada" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "AU", name: "Australia" },
+  { code: "JP", name: "Japan" },
+  { code: "NG", name: "Nigeria" },
+  { code: "GH", name: "Ghana" },
+  { code: "ZA", name: "South Africa" },
+  { code: "KE", name: "Kenya" },
+  { code: "IN", name: "India" },
+  { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "SG", name: "Singapore" },
+];
 
 export default function Account() {
   const { user, profile, loading, signIn, signUp, signOut, updateProfile } = useAuth();
@@ -13,10 +32,10 @@ export default function Account() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [activeSection, setActiveSection] = useState<"overview" | "profile" | "addresses">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "profile" | "addresses" | "rewards">("overview");
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [profileForm, setProfileForm] = useState({
-    full_name: "", phone: "", address_line1: "", city: "", state: "", zip_code: "",
+    full_name: "", phone: "", address_line1: "", city: "", state: "", zip_code: "", country: "US",
   });
   const [profileLoaded, setProfileLoaded] = useState(false);
 
@@ -25,6 +44,7 @@ export default function Account() {
       full_name: profile.full_name || "", phone: profile.phone || "",
       address_line1: profile.address_line1 || "", city: profile.city || "",
       state: profile.state || "", zip_code: profile.zip_code || "",
+      country: profile.country || "US",
     });
     setProfileLoaded(true);
   }
@@ -63,12 +83,14 @@ export default function Account() {
     return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   }
 
-  // Dashboard stats
   const totalOrders = orders?.length || 0;
   const totalSpent = orders?.reduce((acc: number, o: any) => acc + Number(o.total), 0) || 0;
   const pendingOrders = orders?.filter((o: any) => o.status === "pending" || o.status === "processing").length || 0;
   const rewardPoints = profile?.reward_points || 0;
   const recentOrders = orders?.slice(0, 3) || [];
+
+  // Points conversion: 100 pts = $10
+  const pointsValue = Math.floor(rewardPoints / 100) * 10;
 
   if (user) {
     return (
@@ -80,7 +102,7 @@ export default function Account() {
               <span className="text-background font-bold text-xl font-display">{(profile?.full_name || user.email)?.[0]?.toUpperCase()}</span>
             </div>
             <div>
-              <h1 className="font-display text-2xl md:text-3xl font-bold">Welcome, <span className="gold-text">{profile?.full_name || "Shopper"}</span></h1>
+              <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold">Welcome, <span className="gold-text">{profile?.full_name || "Shopper"}</span></h1>
               <p className="text-muted-foreground text-sm">{user.email}</p>
             </div>
           </div>
@@ -93,17 +115,11 @@ export default function Account() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
           {[
             { icon: ShoppingBag, label: "Total Orders", value: totalOrders, color: "text-primary" },
-            { icon: Coins, label: "Reward Points", value: rewardPoints, color: "text-yellow-400" },
+            { icon: Coins, label: "Reward Points", value: rewardPoints, color: "text-yellow-400", sub: pointsValue > 0 ? `= $${pointsValue} value` : undefined },
             { icon: Clock, label: "Active Orders", value: pendingOrders, color: "text-blue-400" },
             { icon: Heart, label: "Wishlist", value: "View", color: "text-pink-400", link: "/wishlist" },
-          ].map((s, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass rounded-2xl p-4 md:p-5"
-            >
+          ].map((s: any, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass rounded-2xl p-4 md:p-5">
               {s.link ? (
                 <Link to={s.link} className="block">
                   <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
@@ -115,6 +131,7 @@ export default function Account() {
                   <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
                   <p className="text-xl md:text-2xl font-bold">{s.value}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
+                  {s.sub && <p className="text-[10px] text-primary font-bold mt-0.5">{s.sub}</p>}
                 </>
               )}
             </motion.div>
@@ -127,6 +144,7 @@ export default function Account() {
             { key: "overview" as const, label: "Overview", icon: Package },
             { key: "profile" as const, label: "Profile", icon: User },
             { key: "addresses" as const, label: "Address", icon: MapPin },
+            { key: "rewards" as const, label: "Rewards", icon: Award },
           ].map(tab => (
             <button
               key={tab.key}
@@ -143,7 +161,6 @@ export default function Account() {
         {/* Content Sections */}
         {activeSection === "overview" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            {/* Quick Actions */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { icon: Package, label: "My Orders", to: "/orders" },
@@ -158,7 +175,6 @@ export default function Account() {
               ))}
             </div>
 
-            {/* Recent Orders */}
             <div className="glass rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display text-lg font-bold">Recent Orders</h2>
@@ -207,15 +223,76 @@ export default function Account() {
           <motion.form onSubmit={handleProfileUpdate} className="glass rounded-2xl p-6 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <h2 className="font-display text-xl font-bold mb-2">Shipping Address</h2>
             <input className={inputClass} placeholder="Street Address" value={profileForm.address_line1} onChange={(e) => setProfileForm({ ...profileForm, address_line1: e.target.value })} />
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <input className={inputClass} placeholder="City" value={profileForm.city} onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })} />
               <input className={inputClass} placeholder="State" value={profileForm.state} onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })} />
               <input className={inputClass} placeholder="ZIP" value={profileForm.zip_code} onChange={(e) => setProfileForm({ ...profileForm, zip_code: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
+                <Globe className="w-3.5 h-3.5 inline mr-1.5" />Country
+              </label>
+              <select value={profileForm.country} onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })} className={inputClass}>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </select>
             </div>
             <button type="submit" disabled={submitting} className="gold-gradient text-background font-semibold w-full py-3.5 rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50">
               <Save className="w-4 h-4" /> {submitting ? "Saving..." : "Save Address"}
             </button>
           </motion.form>
+        )}
+
+        {activeSection === "rewards" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="glass rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl gold-gradient flex items-center justify-center">
+                  <Coins className="w-6 h-6 text-background" />
+                </div>
+                <div>
+                  <h2 className="font-display text-2xl font-bold">{rewardPoints} <span className="text-sm text-muted-foreground font-normal">points</span></h2>
+                  {pointsValue > 0 && <p className="text-sm text-primary font-bold">= ${pointsValue} discount available</p>}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">How it Works</h3>
+                <div className="grid gap-3">
+                  {[
+                    { emoji: "🛍️", title: "Earn on Purchases", desc: "1 point per $1 spent (awarded on delivery)" },
+                    { emoji: "⭐", title: "Write a Review", desc: "Earn 50 points per product review" },
+                    { emoji: "💰", title: "Redeem for Discounts", desc: "100 points = $10 discount at checkout" },
+                  ].map((item) => (
+                    <div key={item.title} className="flex items-start gap-3 p-3 bg-secondary/30 rounded-xl">
+                      <span className="text-xl">{item.emoji}</span>
+                      <div>
+                        <p className="font-bold text-sm">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                  <h4 className="font-bold text-sm mb-2">Points Conversion Table</h4>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    {[
+                      { pts: 100, val: "$10" },
+                      { pts: 500, val: "$50" },
+                      { pts: 1000, val: "$100" },
+                    ].map((tier) => (
+                      <div key={tier.pts} className="p-2 bg-secondary/30 rounded-lg">
+                        <p className="font-bold text-primary">{tier.pts} pts</p>
+                        <p className="text-muted-foreground">{tier.val}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
     );
