@@ -8,7 +8,7 @@ export const useReviews = (productId: string) => {
     queryKey: ["reviews", productId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("product_reviews")
+        .from("reviews")
         .select(`
           *,
           profiles:user_id (full_name, avatar_url)
@@ -32,7 +32,7 @@ export const useSubmitReview = () => {
       if (!user) throw new Error("You must be logged in to leave a review");
 
       const { data, error } = await supabase
-        .from("product_reviews")
+        .from("reviews")
         .insert({
           product_id: productId,
           user_id: user.id,
