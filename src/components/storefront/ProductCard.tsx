@@ -14,9 +14,25 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const variant = product.variants[0];
+
+    const variant =
+      product.variants?.[0] ||
+      (product as any).product_variants?.[0]
+        ? {
+            ...(product.variants?.[0] || (product as any).product_variants?.[0]),
+            colorHex:
+              (product.variants?.[0] as any)?.colorHex ??
+              ((product as any).product_variants?.[0] as any)?.color_hex ??
+              "#000000",
+            price:
+              (product.variants?.[0] as any)?.price ??
+              ((product as any).product_variants?.[0] as any)?.price ??
+              product.price,
+          }
+        : null;
+
     if (variant) {
-      addItem(product, variant);
+      addItem(product, variant as any);
       toast.success(`${product.name} added to cart`);
     }
   };
@@ -41,7 +57,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
       <Link to={`/product/${product.slug}`} className="group block">
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-secondary mb-4">
           <img
-            src={product.images[0]}
+            src={product.images?.[0] || (product as any).product_images?.[0]?.image_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
