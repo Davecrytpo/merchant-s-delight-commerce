@@ -14,8 +14,8 @@ const features = [
 
 const categoryFallbackImages: Record<string, string> = {
   running: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&q=80",
-  casual: "https://images.unsplash.com/photo-1525966222134-fcfa99b1ae77?w=1000&q=80",
-  training: "https://images.unsplash.com/photo-1512374382149-4332c6c021c5?w=1000&q=80",
+  casual: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
+  training: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1000&q=80",
   lifestyle: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1000&q=80",
 };
 
