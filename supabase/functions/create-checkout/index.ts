@@ -2,13 +2,37 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+const defaultAllowedHeaders =
+  "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+
+const getAllowedOrigins = (): string[] => {
+  const raw = Deno.env.get("ALLOWED_ORIGINS") ?? "";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
+const buildCorsHeaders = (origin: string | null) => {
+  const allowedOrigins = getAllowedOrigins();
+  const allowAny = allowedOrigins.length === 0;
+  const allowOrigin = allowAny
+    ? (origin ?? "*")
+    : (origin && allowedOrigins.includes(origin) ? origin : "");
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin || "null",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": defaultAllowedHeaders,
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
 };
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = buildCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -19,6 +43,10 @@ serve(async (req) => {
   );
 
   try {
+    if (!Deno.env.get("STRIPE_SECRET_KEY")) {
+      throw new Error("Server misconfiguration: STRIPE_SECRET_KEY is not set");
+    }
+
     const { items, shippingCost, tax, shippingAddress, shippingMethod } = await req.json();
 
     if (!items || items.length === 0) {
@@ -95,15 +123,16 @@ serve(async (req) => {
     }
 
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
-    const origin = req.headers.get("origin") || "https://id-preview--6f830c61-ce0a-4e28-a809-cdcd46e64fdc.lovable.app";
+    const successOrigin =
+      origin || Deno.env.get("DEFAULT_SITE_URL") || "https://example.com";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user?.email || undefined,
       line_items: lineItems,
       mode: "payment",
-      success_url: `${origin}/checkout?success=true&order=${orderNumber}`,
-      cancel_url: `${origin}/checkout?canceled=true`,
+      success_url: `${successOrigin}/checkout?success=true&order=${orderNumber}`,
+      cancel_url: `${successOrigin}/checkout?canceled=true`,
       metadata: {
         order_number: orderNumber,
         user_id: user?.id || "guest",
@@ -147,7 +176,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Checkout error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown checkout error",
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

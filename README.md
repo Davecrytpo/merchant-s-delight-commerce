@@ -69,7 +69,7 @@ npm install
 Create a `.env` file in the root directory:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_pk
 ```
 
@@ -83,7 +83,7 @@ Apply the migrations found in `/supabase/migrations` to your Supabase project. T
 ### 5. Edge Functions
 Deploy the checkout function to Supabase:
 ```bash
-supabase functions deploy create-checkout-session
+supabase functions deploy create-checkout --project-ref iudmdldthlhrvofkjfvw
 ```
 *Ensure you set `STRIPE_SECRET_KEY` in your Supabase project settings.*
 

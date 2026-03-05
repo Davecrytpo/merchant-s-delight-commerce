@@ -203,8 +203,9 @@ export default function Checkout() {
       if (lastError) {
         const message = lastError.message || "Payment service error";
         if (message.includes("Failed to send a request")) {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "unknown";
           throw new Error(
-            "Stripe checkout service is not deployed on this Supabase project. Please deploy edge function create-checkout."
+            `Unable to reach Supabase Edge Functions at ${supabaseUrl}. Confirm the app is using the correct project URL and that create-checkout is deployed on that project.`
           );
         }
         throw new Error(message);
