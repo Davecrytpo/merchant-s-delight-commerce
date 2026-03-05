@@ -42,7 +42,7 @@ export default function ProductDetail() {
     product.product_variants
       .filter((v: any) => !selectedColor || v.color === selectedColor)
       .forEach((v: any) => set.add(v.size));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => Number(a) - Number(b));
   }, [product, selectedColor]);
 
   const selectedVariant = useMemo(() => {

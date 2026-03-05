@@ -12,6 +12,13 @@ const features = [
   { icon: Headphones, title: "24/7 Support", desc: "Always here for you", link: "/contact" },
 ];
 
+const categoryFallbackImages: Record<string, string> = {
+  running: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&q=80",
+  casual: "https://images.unsplash.com/photo-1525966222134-fcfa99b1ae77?w=1000&q=80",
+  training: "https://images.unsplash.com/photo-1512374382149-4332c6c021c5?w=1000&q=80",
+  lifestyle: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1000&q=80",
+};
+
 export default function Home() {
   const { data: products, isLoading } = useProducts();
   const { data: categories } = useCategories();
@@ -106,7 +113,11 @@ export default function Home() {
                     to={`/shop?category=${cat.id}`}
                     className="group relative aspect-[4/3] rounded-2xl overflow-hidden block"
                   >
-                    <img src={cat.image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <img
+                      src={cat.image_url || categoryFallbackImages[cat.slug] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
+                      alt={cat.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
                     <div className="absolute bottom-4 left-4">
                       <h3 className="font-display text-xl font-bold">{cat.name}</h3>
