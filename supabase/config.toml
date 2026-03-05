@@ -1,7 +1,10 @@
-project_id = "nxrzhyiuitweymckowpo"
+project_id = "iudmdldthlhrvofkjfvw"
 
 [functions.ai-assistant]
 verify_jwt = false
 
 [functions.create-checkout]
+verify_jwt = false
+
+[functions.create-checkout-session]
 verify_jwt = false
