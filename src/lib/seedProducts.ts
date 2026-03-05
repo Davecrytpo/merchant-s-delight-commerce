@@ -15,22 +15,34 @@ type SeedProduct = {
   is_new?: boolean;
   is_featured?: boolean;
   is_trending?: boolean;
-  category_slug: "running" | "casual" | "training" | "lifestyle";
+  category_slug:
+    | "running"
+    | "hiking"
+    | "training"
+    | "casual"
+    | "office"
+    | "luxury"
+    | "kids"
+    | "lifestyle";
   images: string[];
   colorways: Colorway[];
   sizes: string[];
 };
+
+const ADULT_SIZES = ["7", "8", "9", "10", "11", "12", "13"];
+const OFFICE_SIZES = ["7", "8", "9", "10", "11", "12"];
+const KIDS_SIZES = ["11C", "12C", "13C", "1Y", "2Y", "3Y", "4Y"];
 
 const realProducts: SeedProduct[] = [
   {
     name: "Air Velocity Pro",
     slug: "air-velocity-pro",
     brand: "ShoeShop",
-    description: "Engineered for speed with responsive cushioning and a breathable mesh upper.",
+    description: "Engineered for speed with responsive cushioning and a breathable upper.",
     long_description:
-      "The Air Velocity Pro represents the pinnacle of running shoe technology. Featuring our proprietary ReactFoam midsole that returns 85% of energy with every stride. The lightweight engineered mesh upper provides targeted support and breathability where you need it most.",
-    price: 189.0,
-    original_price: 229.0,
+      "The Air Velocity Pro is built for runners who want speed and comfort in one package. It combines lightweight support with responsive foam for daily training and race day performance.",
+    price: 189,
+    original_price: 229,
     rating: 4.8,
     review_count: 342,
     is_new: true,
@@ -40,185 +52,316 @@ const realProducts: SeedProduct[] = [
     images: [
       "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80",
       "https://images.unsplash.com/photo-1552346154-21d32810aba3?w=1200&q=80",
-      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&q=80",
     ],
     colorways: [
       { name: "Jet Black", hex: "#111111" },
       { name: "Crimson Red", hex: "#C51F2A" },
       { name: "Arctic White", hex: "#F5F5F5" },
     ],
-    sizes: ["7", "8", "9", "10", "11", "12", "13"],
+    sizes: ADULT_SIZES,
   },
   {
     name: "Urban Street Classic",
     slug: "urban-street-classic",
     brand: "ShoeShop",
-    description: "Timeless street style meets modern comfort technology.",
+    description: "Timeless street style with all-day comfort.",
     long_description:
-      "The Urban Street Classic blends heritage design with cutting-edge comfort. Premium full-grain leather upper ages beautifully over time, while the hidden Air-Sole unit provides all-day cushioning for your city adventures.",
-    price: 129.0,
+      "Urban Street Classic blends heritage design and modern comfort for everyday wear. Premium materials and durable construction make it a reliable daily staple.",
+    price: 129,
     rating: 4.6,
     review_count: 891,
     is_featured: true,
     category_slug: "casual",
     images: [
-      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=80",
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&q=80",
       "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=1200&q=80",
-      "https://images.unsplash.com/photo-1597248881519-db089d3744a5?w=1200&q=80",
     ],
     colorways: [
       { name: "Classic White", hex: "#FFFFFF" },
-      { name: "Coffee Brown", hex: "#6B4423" },
       { name: "Slate Grey", hex: "#5F6A72" },
+      { name: "Coffee Brown", hex: "#6B4423" },
     ],
-    sizes: ["7", "8", "9", "10", "11", "12"],
+    sizes: ADULT_SIZES,
   },
   {
     name: "Summit Trail X",
     slug: "summit-trail-x",
     brand: "ShoeShop",
-    description: "Conquer any terrain with waterproof protection and aggressive traction.",
+    description: "Water-resistant trail shoe built for rugged terrain.",
     long_description:
-      "Built for the most demanding trails, the Summit Trail X features a waterproof membrane that keeps your feet dry in any weather. The multi-directional lug pattern ensures steady footing on mud, loose rock, and slippery surfaces.",
-    price: 219.0,
-    original_price: 259.0,
+      "Summit Trail X features aggressive traction, reinforced support, and weather-ready materials. It is made for demanding hikes, rough trails, and all-condition adventures.",
+    price: 219,
+    original_price: 259,
     rating: 4.9,
     review_count: 156,
     is_new: true,
     is_trending: true,
-    category_slug: "running",
+    category_slug: "hiking",
     images: [
+      "https://images.unsplash.com/photo-1597248881519-db089d3744a5?w=1200&q=80",
       "https://images.unsplash.com/photo-1539185441755-769473a23570?w=1200&q=80",
-      "https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?w=1200&q=80",
-      "https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=1200&q=80",
     ],
     colorways: [
       { name: "Forest Green", hex: "#1F5D3D" },
-      { name: "Midnight Navy", hex: "#1F2A44" },
       { name: "Sandstone", hex: "#C4A484" },
+      { name: "Midnight Navy", hex: "#1F2A44" },
     ],
-    sizes: ["8", "9", "10", "11", "12", "13"],
+    sizes: ADULT_SIZES,
   },
   {
     name: "Flex Training Elite",
     slug: "flex-training-elite",
     brand: "ShoeShop",
-    description: "Versatile training shoe built for gym workouts and cross-training.",
+    description: "Versatile training shoe for gym and cross-training.",
     long_description:
-      "The Flex Training Elite is designed for athletes who demand versatility. A wide, flat outsole provides a stable base for lifting, while the flexible forefoot allows for natural movement during agility drills and cardio.",
-    price: 149.0,
+      "Flex Training Elite gives you stability for strength work and flexibility for movement drills. It is tuned for mixed workouts and long training sessions.",
+    price: 149,
     rating: 4.7,
     review_count: 567,
     is_featured: true,
     category_slug: "training",
     images: [
-      "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1200&q=80",
-      "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=1200&q=80",
-      "https://images.unsplash.com/photo-1597045566677-8cf032ed6634?w=1200&q=80",
+      "https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?w=1200&q=80",
+      "https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=1200&q=80",
     ],
     colorways: [
       { name: "Onyx Black", hex: "#101214" },
       { name: "Electric Blue", hex: "#2D6CDF" },
       { name: "Volt Lime", hex: "#B8D430" },
     ],
-    sizes: ["7", "8", "9", "10", "11", "12", "13"],
+    sizes: ADULT_SIZES,
   },
   {
     name: "Luxe Leather Boot",
     slug: "luxe-leather-boot",
     brand: "ShoeShop",
-    description: "Handcrafted premium leather boot with Goodyear welt construction.",
+    description: "Premium handcrafted leather boot with luxury finish.",
     long_description:
-      "Each pair of Luxe Leather Boots is handcrafted by skilled artisans using time-honored techniques. The premium Italian leather upper is paired with a durable Vibram outsole, making these boots as tough as they are elegant.",
-    price: 349.0,
+      "Luxe Leather Boot is crafted for elevated style with robust build quality. It pairs premium leather with a comfort-focused insole for long wear.",
+    price: 349,
     rating: 4.9,
     review_count: 89,
     is_trending: true,
-    category_slug: "lifestyle",
+    is_featured: true,
+    category_slug: "luxury",
     images: [
-      "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=1200&q=80",
-      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=1200&q=80",
-      "https://images.unsplash.com/photo-1626947346165-4c2288dadc2a?w=1200&q=80",
+      "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=1200&q=80",
+      "https://images.unsplash.com/photo-1597045566677-8cf032ed6634?w=1200&q=80",
     ],
     colorways: [
       { name: "Dark Brown", hex: "#4E342E" },
-      { name: "Tan", hex: "#B9895B" },
       { name: "Black", hex: "#1C1C1C" },
+      { name: "Tan", hex: "#B9895B" },
     ],
-    sizes: ["8", "9", "10", "11", "12", "13"],
+    sizes: OFFICE_SIZES,
   },
   {
     name: "Cloud Walker",
     slug: "cloud-walker",
     brand: "ShoeShop",
-    description: "Ultra-lightweight slip-on with cloud-like cushioning for all-day wear.",
+    description: "Ultra-light casual comfort for daily wear.",
     long_description:
-      "Step into pure comfort with the Cloud Walker. Our lightest shoe ever, featuring a breathable knit upper that fits like a sock and a revolutionary foam outsole that makes you feel like you're walking on air.",
-    price: 99.0,
-    original_price: 119.0,
+      "Cloud Walker is designed for effortless comfort and lightweight flexibility. It delivers soft cushioning and breathable support for everyday movement.",
+    price: 99,
+    original_price: 119,
     rating: 4.5,
     review_count: 1203,
     category_slug: "casual",
     images: [
-      "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=1200&q=80",
-      "https://images.unsplash.com/photo-1603808033192-082d6919d3e1?w=1200&q=80",
-      "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=1200&q=80",
+      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=1200&q=80",
+      "https://images.unsplash.com/photo-1626947346165-4c2288dadc2a?w=1200&q=80",
     ],
     colorways: [
       { name: "Cloud White", hex: "#F3F5F7" },
       { name: "Sky Blue", hex: "#78A7D7" },
       { name: "Rose Pink", hex: "#D4879C" },
     ],
-    sizes: ["6", "7", "8", "9", "10", "11"],
+    sizes: ADULT_SIZES,
   },
   {
     name: "Pro Court Ace",
     slug: "pro-court-ace",
     brand: "ShoeShop",
-    description: "Court-ready performance with ankle support and responsive cushioning.",
+    description: "Court-focused performance with ankle support.",
     long_description:
-      "Dominate the court with the Pro Court Ace. High-top design provides superior ankle support for lateral movements, while the ZoomAir unit in the heel delivers explosive energy return on every jump.",
-    price: 179.0,
+      "Pro Court Ace is made for explosive movement and high-impact play. It provides secure support, responsive cushioning, and dependable traction.",
+    price: 179,
     rating: 4.7,
     review_count: 234,
     is_new: true,
     category_slug: "training",
     images: [
-      "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=1200&q=80",
-      "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200&q=80",
-      "https://images.unsplash.com/photo-1543508282-6319a3e2621f?w=1200&q=80",
+      "https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=1200&q=80",
+      "https://images.unsplash.com/photo-1603808033192-082d6919d3e1?w=1200&q=80",
     ],
     colorways: [
       { name: "Court White", hex: "#FAFAFA" },
       { name: "Royal Blue", hex: "#2256A3" },
       { name: "Infrared", hex: "#E83A30" },
     ],
-    sizes: ["8", "9", "10", "11", "12", "13", "14"],
+    sizes: ADULT_SIZES,
   },
   {
-    name: "Retro Runner '90",
+    name: "Retro Runner 90",
     slug: "retro-runner-90",
     brand: "ShoeShop",
-    description: "90s-inspired runner with vintage aesthetics and modern comfort.",
+    description: "Vintage-inspired runner with modern comfort.",
     long_description:
-      "A love letter to the golden era of running shoes. The Retro Runner '90 features authentic vintage materials and colorways combined with modern EVA midsole technology for a ride that's classic yet comfortable.",
-    price: 139.0,
+      "Retro Runner 90 keeps classic style while delivering current-day comfort. It is ideal for lifestyle wear with standout color options.",
+    price: 139,
     rating: 4.4,
     review_count: 445,
     is_featured: true,
     is_trending: true,
     category_slug: "lifestyle",
     images: [
-      "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1200&q=80",
-      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1200&q=80",
-      "https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=1200&q=80",
+      "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=1200&q=80",
+      "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200&q=80",
     ],
     colorways: [
       { name: "Vintage White", hex: "#F4F0E6" },
       { name: "Navy Blue", hex: "#243B6B" },
       { name: "Burgundy", hex: "#6F1D2A" },
     ],
-    sizes: ["7", "8", "9", "10", "11", "12", "13"],
+    sizes: ADULT_SIZES,
+  },
+  {
+    name: "Executive Oxford",
+    slug: "executive-oxford",
+    brand: "ShoeShop",
+    description: "Elegant office oxford for business and formal wear.",
+    long_description:
+      "Executive Oxford brings a refined silhouette and polished finish for boardroom-ready style. It balances luxury look and day-long comfort.",
+    price: 289,
+    original_price: 329,
+    rating: 4.9,
+    review_count: 128,
+    is_featured: true,
+    category_slug: "office",
+    images: [
+      "https://images.unsplash.com/photo-1543508282-6319a3e2621f?w=1200&q=80",
+      "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1200&q=80",
+    ],
+    colorways: [
+      { name: "Espresso", hex: "#4A3426" },
+      { name: "Black", hex: "#111111" },
+      { name: "Cognac", hex: "#9C6A3E" },
+    ],
+    sizes: OFFICE_SIZES,
+  },
+  {
+    name: "Heritage Penny Loafer",
+    slug: "heritage-penny-loafer",
+    brand: "ShoeShop",
+    description: "Sophisticated leather loafer for office and smart-casual outfits.",
+    long_description:
+      "Heritage Penny Loafer combines timeless style with soft underfoot comfort. It is ideal for office days, dinners, and polished everyday wear.",
+    price: 239,
+    rating: 4.8,
+    review_count: 204,
+    category_slug: "office",
+    images: [
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1200&q=80",
+      "https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=1200&q=80",
+    ],
+    colorways: [
+      { name: "Mahogany", hex: "#5A3428" },
+      { name: "Jet Black", hex: "#161616" },
+      { name: "Chestnut", hex: "#8A5A3A" },
+    ],
+    sizes: OFFICE_SIZES,
+  },
+  {
+    name: "Kids Play Sprint",
+    slug: "kids-play-sprint",
+    brand: "ShoeShop Kids",
+    description: "Lightweight kids runner for school and playground.",
+    long_description:
+      "Kids Play Sprint is built for energetic days with cushioned comfort, breathable materials, and durable grip for active movement.",
+    price: 79,
+    rating: 4.7,
+    review_count: 310,
+    is_new: true,
+    category_slug: "kids",
+    images: [
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=80",
+      "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1200&q=80",
+    ],
+    colorways: [
+      { name: "Ocean Blue", hex: "#2F6CD6" },
+      { name: "Lime Pop", hex: "#9ACD32" },
+      { name: "Candy Pink", hex: "#E06AA8" },
+    ],
+    sizes: KIDS_SIZES,
+  },
+  {
+    name: "Kids Campus Classic",
+    slug: "kids-campus-classic",
+    brand: "ShoeShop Kids",
+    description: "Durable everyday kids sneaker with easy comfort fit.",
+    long_description:
+      "Kids Campus Classic is a versatile daily sneaker designed for comfort, durability, and quick movement from class to playtime.",
+    price: 69,
+    rating: 4.6,
+    review_count: 280,
+    category_slug: "kids",
+    images: [
+      "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=1200&q=80",
+      "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=1200&q=80",
+    ],
+    colorways: [
+      { name: "Primary Red", hex: "#D62F2F" },
+      { name: "School Navy", hex: "#1F3A6D" },
+      { name: "Graphite", hex: "#4F4F4F" },
+    ],
+    sizes: KIDS_SIZES,
+  },
+  {
+    name: "Alpine Trek Shield",
+    slug: "alpine-trek-shield",
+    brand: "ShoeShop",
+    description: "Technical hiking shoe with premium grip and support.",
+    long_description:
+      "Alpine Trek Shield delivers trail confidence with high-grip outsole geometry, durable overlays, and comfort-tuned cushioning.",
+    price: 249,
+    original_price: 289,
+    rating: 4.9,
+    review_count: 111,
+    is_trending: true,
+    category_slug: "hiking",
+    images: [
+      "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1200",
+      "https://images.pexels.com/photos/1598505/pexels-photo-1598505.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    ],
+    colorways: [
+      { name: "Olive", hex: "#4D5D3A" },
+      { name: "Stone", hex: "#8C8A83" },
+      { name: "Graphite", hex: "#3A3F44" },
+    ],
+    sizes: ADULT_SIZES,
+  },
+  {
+    name: "Royale Monk Strap",
+    slug: "royale-monk-strap",
+    brand: "ShoeShop Signature",
+    description: "Luxury double monk strap shoe with premium leather finish.",
+    long_description:
+      "Royale Monk Strap is tailored for premium formal styling with fine leather construction, elegant profile, and refined comfort for special occasions.",
+    price: 399,
+    rating: 5.0,
+    review_count: 76,
+    is_featured: true,
+    category_slug: "luxury",
+    images: [
+      "https://images.pexels.com/photos/19090/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1200",
+      "https://images.pexels.com/photos/267202/pexels-photo-267202.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    ],
+    colorways: [
+      { name: "Midnight Black", hex: "#0F0F0F" },
+      { name: "Royal Brown", hex: "#5E3D2B" },
+      { name: "Oxblood", hex: "#5C1F1F" },
+    ],
+    sizes: OFFICE_SIZES,
   },
 ];
 
@@ -253,25 +396,53 @@ export async function seedProducts(clearExisting = false) {
     {
       name: "Running",
       slug: "running",
-      description: "Performance shoes for every mile",
+      description: "Performance running shoes",
       image_url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&q=80",
     },
     {
-      name: "Casual",
-      slug: "casual",
-      description: "Daily style and comfort",
-      image_url: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
+      name: "Hiking",
+      slug: "hiking",
+      description: "Outdoor and trail-ready footwear",
+      image_url:
+        "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1000",
     },
     {
       name: "Training",
       slug: "training",
-      description: "Cross-training and gym performance",
-      image_url: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1000&q=80",
+      description: "Gym and cross-training essentials",
+      image_url: "https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=1000&q=80",
+    },
+    {
+      name: "Casual",
+      slug: "casual",
+      description: "Everyday comfort and style",
+      image_url: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
+    },
+    {
+      name: "Office",
+      slug: "office",
+      description: "Formal and business-ready shoes",
+      image_url:
+        "https://images.pexels.com/photos/19090/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1000",
+    },
+    {
+      name: "Luxury",
+      slug: "luxury",
+      description: "High-end premium leather footwear",
+      image_url:
+        "https://images.pexels.com/photos/267202/pexels-photo-267202.jpeg?auto=compress&cs=tinysrgb&w=1000",
+    },
+    {
+      name: "Kids",
+      slug: "kids",
+      description: "Durable and comfortable kids footwear",
+      image_url:
+        "https://images.pexels.com/photos/1456706/pexels-photo-1456706.jpeg?auto=compress&cs=tinysrgb&w=1000",
     },
     {
       name: "Lifestyle",
       slug: "lifestyle",
-      description: "Street-ready fashion",
+      description: "Street-ready fashion sneakers",
       image_url: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1000&q=80",
     },
   ];
@@ -311,8 +482,9 @@ export async function seedProducts(clearExisting = false) {
 
     if (p) {
       await supabase.from("product_images").delete().eq("product_id", p.id);
+      const dedupImages = Array.from(new Set(images));
       const { error: imageError } = await supabase.from("product_images").insert(
-        images.map((imageUrl, index) => ({
+        dedupImages.map((imageUrl, index) => ({
           product_id: p.id,
           image_url: imageUrl,
           position: index,
@@ -330,7 +502,7 @@ export async function seedProducts(clearExisting = false) {
           color: color.name,
           color_hex: color.hex,
           price: product.price,
-          stock: Math.max(8, 40 - colorIndex * 6 - sizeIndex),
+          stock: Math.max(8, 35 - colorIndex * 4 - sizeIndex),
         }))
       );
 

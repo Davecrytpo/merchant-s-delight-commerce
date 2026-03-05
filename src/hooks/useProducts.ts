@@ -2,6 +2,33 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const DEFAULT_US_SIZES = ["6", "7", "8", "9", "10", "11", "12"];
+const DEFAULT_COLORWAYS = [
+  { color: "Black", color_hex: "#111111" },
+  { color: "White", color_hex: "#F5F5F5" },
+  { color: "Brown", color_hex: "#6B4F3A" },
+  { color: "Navy", color_hex: "#243B6B" },
+];
+
+const buildFallbackVariants = (product: any) => {
+  const sizeSet =
+    product.category?.toLowerCase() === "kids"
+      ? ["11C", "12C", "13C", "1Y", "2Y", "3Y", "4Y"]
+      : DEFAULT_US_SIZES;
+
+  return sizeSet.flatMap((size, sizeIdx) =>
+    DEFAULT_COLORWAYS.slice(0, 3).map((c, colorIdx) => ({
+      id: `fallback-${product.id}-${c.color}-${size}`,
+      product_id: product.id,
+      size,
+      color: c.color,
+      color_hex: c.color_hex,
+      stock: Math.max(5, 30 - sizeIdx - colorIdx * 3),
+      price: product.price,
+    }))
+  );
+};
+
 const attachProductRelations = async (products: any[]) => {
   if (!products?.length) return [];
 
@@ -46,9 +73,32 @@ const attachProductRelations = async (products: any[]) => {
   }
 
   return products.map((product) => {
-    const productImages = imagesByProduct.get(product.id) || [];
-    const productVariants = variantsByProduct.get(product.id) || [];
+    const rawImages = imagesByProduct.get(product.id) || [];
+    const rawVariants = variantsByProduct.get(product.id) || [];
     const category = product.category_id ? categoriesById.get(product.category_id) || null : null;
+
+    const seenImageUrls = new Set<string>();
+    const productImages = rawImages.filter((img: any) => {
+      if (!img?.image_url || seenImageUrls.has(img.image_url)) return false;
+      seenImageUrls.add(img.image_url);
+      return true;
+    });
+
+    const seenVariantKeys = new Set<string>();
+    let productVariants = rawVariants.filter((variant: any) => {
+      const key = `${variant.size}-${variant.color}`.toLowerCase();
+      if (seenVariantKeys.has(key)) return false;
+      seenVariantKeys.add(key);
+      return true;
+    });
+
+    if (productVariants.length < 4) {
+      productVariants = buildFallbackVariants({
+        id: product.id,
+        price: product.price,
+        category: category?.slug || "",
+      });
+    }
 
     return {
       ...product,

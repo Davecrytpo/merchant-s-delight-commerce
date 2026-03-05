@@ -16,6 +16,10 @@ const categoryFallbackImages: Record<string, string> = {
   running: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&q=80",
   casual: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
   training: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1000&q=80",
+  hiking: "https://images.unsplash.com/photo-1539185441755-769473a23570?w=1000&q=80",
+  office: "https://images.pexels.com/photos/19090/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1000",
+  luxury: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1000",
+  kids: "https://images.pexels.com/photos/1456706/pexels-photo-1456706.jpeg?auto=compress&cs=tinysrgb&w=1000",
   lifestyle: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1000&q=80",
 };
 
@@ -117,6 +121,11 @@ export default function Home() {
                       src={cat.image_url || categoryFallbackImages[cat.slug] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
                       alt={cat.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          categoryFallbackImages[cat.slug] ||
+                          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80";
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
                     <div className="absolute bottom-4 left-4">
