@@ -45,12 +45,38 @@ const attachProductRelations = async (products: any[]) => {
     categoriesById.set(category.id, category);
   }
 
-  return products.map((product) => ({
-    ...product,
-    product_images: imagesByProduct.get(product.id) || [],
-    product_variants: variantsByProduct.get(product.id) || [],
-    categories: product.category_id ? categoriesById.get(product.category_id) || null : null,
-  }));
+  return products.map((product) => {
+    const productImages = imagesByProduct.get(product.id) || [];
+    const productVariants = variantsByProduct.get(product.id) || [];
+    const category = product.category_id ? categoriesById.get(product.category_id) || null : null;
+
+    return {
+      ...product,
+      // DB-shaped fields (existing)
+      product_images: productImages,
+      product_variants: productVariants,
+      categories: category,
+
+      // UI-shaped compatibility fields (camelCase + flattened)
+      images: productImages.map((img: any) => img.image_url),
+      variants: productVariants.map((variant: any) => ({
+        id: variant.id,
+        size: variant.size,
+        color: variant.color,
+        colorHex: variant.color_hex,
+        stock: variant.stock,
+        price: variant.price ?? product.price,
+      })),
+      category: category?.name || "",
+      longDescription: product.long_description,
+      originalPrice: product.original_price,
+      reviewCount: product.review_count,
+      isNew: product.is_new,
+      isFeatured: product.is_featured,
+      isTrending: product.is_trending,
+      tags: [],
+    };
+  });
 };
 
 export const useProducts = (options: { 
@@ -60,7 +86,7 @@ export const useProducts = (options: {
   sort?: string;
 } = {}) => {
   return useQuery({
-    queryKey: ["products", options],
+    queryKey: ["products", options.category ?? null, options.featured ?? null, options.limit ?? null, options.sort ?? null],
     queryFn: async () => {
       let query = supabase
         .from("products")
