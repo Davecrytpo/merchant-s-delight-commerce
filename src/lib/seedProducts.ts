@@ -62,7 +62,7 @@ const realProducts: SeedProduct[] = [
     is_featured: true,
     category_slug: "casual",
     images: [
-      "https://images.unsplash.com/photo-1525966222134-fcfa99b1ae77?w=1200&q=80",
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=80",
       "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=1200&q=80",
       "https://images.unsplash.com/photo-1597248881519-db089d3744a5?w=1200&q=80",
     ],
@@ -112,7 +112,7 @@ const realProducts: SeedProduct[] = [
     is_featured: true,
     category_slug: "training",
     images: [
-      "https://images.unsplash.com/photo-1512374382149-4332c6c021c5?w=1200&q=80",
+      "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1200&q=80",
       "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=1200&q=80",
       "https://images.unsplash.com/photo-1597045566677-8cf032ed6634?w=1200&q=80",
     ],
@@ -136,7 +136,7 @@ const realProducts: SeedProduct[] = [
     is_trending: true,
     category_slug: "lifestyle",
     images: [
-      "https://images.unsplash.com/photo-1520639889410-1eb419ef596a?w=1200&q=80",
+      "https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=1200&q=80",
       "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=1200&q=80",
       "https://images.unsplash.com/photo-1626947346165-4c2288dadc2a?w=1200&q=80",
     ],
@@ -184,7 +184,7 @@ const realProducts: SeedProduct[] = [
     is_new: true,
     category_slug: "training",
     images: [
-      "https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=1200&q=80",
+      "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=1200&q=80",
       "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200&q=80",
       "https://images.unsplash.com/photo-1543508282-6319a3e2621f?w=1200&q=80",
     ],
@@ -260,13 +260,13 @@ export async function seedProducts(clearExisting = false) {
       name: "Casual",
       slug: "casual",
       description: "Daily style and comfort",
-      image_url: "https://images.unsplash.com/photo-1525966222134-fcfa99b1ae77?w=1000&q=80",
+      image_url: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
     },
     {
       name: "Training",
       slug: "training",
       description: "Cross-training and gym performance",
-      image_url: "https://images.unsplash.com/photo-1512374382149-4332c6c021c5?w=1000&q=80",
+      image_url: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1000&q=80",
     },
     {
       name: "Lifestyle",
