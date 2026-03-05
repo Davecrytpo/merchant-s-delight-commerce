@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Loader2, MessageSquare, Trash2 } from "lucide-react";
@@ -12,7 +11,7 @@ export default function AdminReviews() {
     queryKey: ["admin-reviews"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("product_reviews")
+        .from("reviews")
         .select(`
           *,
           products (name),
@@ -28,7 +27,7 @@ export default function AdminReviews() {
   const deleteReview = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("product_reviews")
+        .from("reviews")
         .delete()
         .eq("id", id);
       if (error) throw error;
