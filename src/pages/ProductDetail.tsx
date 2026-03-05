@@ -42,7 +42,12 @@ export default function ProductDetail() {
     product.product_variants
       .filter((v: any) => !selectedColor || v.color === selectedColor)
       .forEach((v: any) => set.add(v.size));
-    return Array.from(set).sort((a, b) => Number(a) - Number(b));
+    return Array.from(set).sort((a, b) => {
+      const aNum = parseFloat(a);
+      const bNum = parseFloat(b);
+      const bothNumeric = !Number.isNaN(aNum) && !Number.isNaN(bNum);
+      return bothNumeric ? aNum - bNum : a.localeCompare(b);
+    });
   }, [product, selectedColor]);
 
   const selectedVariant = useMemo(() => {

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
@@ -10,6 +11,17 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
   const { addItem } = useCart();
   const { isInWishlist, toggleItem } = useWishlist();
   const wishlisted = isInWishlist(product.id);
+  const safeImages = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          ([...(product.images || []), ...(((product as any).product_images || []).map((i: any) => i.image_url || ""))] as string[])
+            .filter(Boolean)
+        )
+      ),
+    [product]
+  );
+  const [imageIdx, setImageIdx] = useState(0);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,9 +69,12 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
       <Link to={`/product/${product.slug}`} className="group block">
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-secondary mb-4">
           <img
-            src={product.images?.[0] || (product as any).product_images?.[0]?.image_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
+            src={safeImages[imageIdx] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={() => {
+              if (imageIdx < safeImages.length - 1) setImageIdx(imageIdx + 1);
+            }}
           />
           {/* Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -1,4 +1,4 @@
-import { useState, useRef, MouseEvent, TouchEvent } from "react";
+import { useMemo, useState, useRef, MouseEvent, TouchEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchIcon, ZoomIn, ZoomOut } from "lucide-react";
 
@@ -8,6 +8,10 @@ interface Props {
 }
 
 export default function ProductImageGallery({ images, name }: Props) {
+  const safeImages = useMemo(
+    () => Array.from(new Set((images || []).filter(Boolean))),
+    [images]
+  );
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoom, setZoom] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
@@ -58,13 +62,16 @@ export default function ProductImageGallery({ images, name }: Props) {
             transition={{ duration: 0.3 }}
             className="w-full h-full"
           >
-            <div
-              className="w-full h-full transition-transform duration-200 ease-out"
+            <img
+              src={safeImages[selectedImage] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80"}
+              alt={name}
+              className="w-full h-full object-cover transition-transform duration-200 ease-out"
               style={{
-                backgroundImage: `url(${images[selectedImage]})`,
-                backgroundSize: zoom ? "250%" : "cover",
-                backgroundPosition: zoom ? `${zoomPos.x}% ${zoomPos.y}%` : "center",
-                backgroundRepeat: "no-repeat"
+                transform: zoom ? "scale(2.5)" : "scale(1)",
+                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+              }}
+              onError={() => {
+                if (selectedImage < safeImages.length - 1) setSelectedImage(selectedImage + 1);
               }}
             />
           </motion.div>
@@ -86,7 +93,7 @@ export default function ProductImageGallery({ images, name }: Props) {
 
       {/* Thumbnails */}
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
-        {images.map((img, i) => (
+        {safeImages.map((img, i) => (
           <button
             key={i}
             onClick={() => {
@@ -99,7 +106,15 @@ export default function ProductImageGallery({ images, name }: Props) {
                 : "border-transparent opacity-50 hover:opacity-100 hover:scale-105"
             }`}
           >
-            <img src={img} alt="" className="w-full h-full object-cover" />
+            <img
+              src={img}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80";
+              }}
+            />
           </button>
         ))}
       </div>
