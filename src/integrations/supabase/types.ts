@@ -211,50 +211,6 @@ export type Database = {
           },
         ]
       }
-      product_reviews: {
-        Row: {
-          comment: string | null
-          created_at: string
-          id: string
-          is_verified_purchase: boolean | null
-          product_id: string
-          rating: number
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          is_verified_purchase?: boolean | null
-          product_id: string
-          rating: number
-          title?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          is_verified_purchase?: boolean | null
-          product_id?: string
-          rating?: number
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_reviews_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       product_variants: {
         Row: {
           color: string
@@ -415,9 +371,57 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          is_verified_purchase: boolean | null
+          product_id: string
+          rating: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_verified_purchase?: boolean | null
+          product_id: string
+          rating: number
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_verified_purchase?: boolean | null
+          product_id?: string
+          rating?: number
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipping_methods: {
         Row: {
           carrier: string
+          country_code: string | null
           created_at: string
           description: string | null
           estimated_days: string | null
@@ -426,9 +430,11 @@ export type Database = {
           min_order_amount: number | null
           name: string
           price: number
+          updated_at: string
         }
         Insert: {
           carrier: string
+          country_code?: string | null
           created_at?: string
           description?: string | null
           estimated_days?: string | null
@@ -437,9 +443,11 @@ export type Database = {
           min_order_amount?: number | null
           name: string
           price?: number
+          updated_at?: string
         }
         Update: {
           carrier?: string
+          country_code?: string | null
           created_at?: string
           description?: string | null
           estimated_days?: string | null
@@ -448,6 +456,7 @@ export type Database = {
           min_order_amount?: number | null
           name?: string
           price?: number
+          updated_at?: string
         }
         Relationships: []
       }
