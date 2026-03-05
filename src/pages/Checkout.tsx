@@ -84,9 +84,21 @@ export default function Checkout() {
     }
   }, [searchParams, clearCart]);
 
-  // Show all configured shipping methods for the selected country scope.
+  // Business rule:
+  // - US destination => USPS only
+  // - Non-US destination => DHL only
   const filteredShippingMethods = useMemo(() => {
     if (!shippingMethods) return [];
+    if (deliveryType === "domestic") {
+      return shippingMethods.filter((m: ShippingMethod) =>
+        m.carrier.toUpperCase().includes("USPS")
+      );
+    }
+    if (deliveryType === "international") {
+      return shippingMethods.filter((m: ShippingMethod) =>
+        m.carrier.toUpperCase().includes("DHL")
+      );
+    }
     return shippingMethods;
   }, [shippingMethods, deliveryType]);
 
@@ -312,12 +324,12 @@ export default function Checkout() {
                   {formData.country === "US" ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
                       <Flag className="w-3 h-3" />
-                      <span>Domestic shipping via <strong>USPS, UPS, or FedEx</strong></span>
+                      <span>Domestic shipping via <strong>USPS</strong></span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
                       <Globe className="w-3 h-3" />
-                      <span>International shipping via <strong>DHL and global carriers</strong></span>
+                      <span>International shipping via <strong>DHL</strong></span>
                     </div>
                   )}
                 </div>
@@ -334,14 +346,14 @@ export default function Checkout() {
                 <div className="flex items-center gap-2 mb-4">
                   <Truck className="w-5 h-5 text-primary" />
                   <h2 className="font-display text-lg md:text-xl font-bold">
-                    {deliveryType === "domestic" ? "Domestic Shipping Options" : "International Shipping Options"}
+                    {deliveryType === "domestic" ? "USPS Shipping Options" : "DHL International Shipping"}
                   </h2>
                 </div>
 
                 <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
                   {deliveryType === "domestic"
-                    ? "📦 Shipping within the United States with real carrier options and rates."
-                    : "🌍 International shipping with global carrier options and rates."}
+                    ? "📦 US destination detected. Carrier automatically set to USPS."
+                    : "🌍 International destination detected. Carrier automatically set to DHL."}
                 </div>
 
                 {shippingLoading ? (
