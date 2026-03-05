@@ -84,15 +84,9 @@ export default function Checkout() {
     }
   }, [searchParams, clearCart]);
 
-  // Filter shipping methods: USPS for domestic US, DHL for international
+  // Show all configured shipping methods for the selected country scope.
   const filteredShippingMethods = useMemo(() => {
     if (!shippingMethods) return [];
-    if (deliveryType === "domestic") {
-      return shippingMethods.filter((m: ShippingMethod) => m.carrier.toUpperCase().includes("USPS"));
-    }
-    if (deliveryType === "international") {
-      return shippingMethods.filter((m: ShippingMethod) => m.carrier.toUpperCase().includes("DHL"));
-    }
     return shippingMethods;
   }, [shippingMethods, deliveryType]);
 
@@ -165,26 +159,44 @@ export default function Checkout() {
     }));
 
     try {
-      const { data, error: funcError } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          items: orderItems,
-          shippingCost,
-          tax,
-          shippingAddress: {
-            name: `${formData.firstName} ${formData.lastName}`,
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            zip: formData.zip,
-            country: formData.country,
-            carrier: selectedMethod?.carrier,
-            method: selectedMethod?.name,
-          },
-          shippingMethod: `${selectedMethod?.carrier} ${selectedMethod?.name}`,
+      const payload = {
+        items: orderItems,
+        shippingCost,
+        tax,
+        shippingAddress: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          country: formData.country,
+          carrier: selectedMethod?.carrier,
+          method: selectedMethod?.name,
         },
-      });
+        shippingMethod: `${selectedMethod?.carrier} ${selectedMethod?.name}`,
+      };
 
-      if (funcError) throw new Error(funcError.message || "Payment service error");
+      let data: any = null;
+      let lastError: any = null;
+      for (const fnName of ["create-checkout", "create-checkout-session"]) {
+        const result = await supabase.functions.invoke(fnName, { body: payload });
+        if (!result.error) {
+          data = result.data;
+          lastError = null;
+          break;
+        }
+        lastError = result.error;
+      }
+
+      if (lastError) {
+        const message = lastError.message || "Payment service error";
+        if (message.includes("Failed to send a request")) {
+          throw new Error(
+            "Stripe checkout service is not deployed on this Supabase project. Please deploy edge function create-checkout."
+          );
+        }
+        throw new Error(message);
+      }
       if (!data?.url) throw new Error("No checkout URL received");
 
       window.location.href = data.url;
@@ -300,12 +312,12 @@ export default function Checkout() {
                   {formData.country === "US" ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
                       <Flag className="w-3 h-3" />
-                      <span>Domestic shipping via <strong>USPS</strong></span>
+                      <span>Domestic shipping via <strong>USPS, UPS, or FedEx</strong></span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
                       <Globe className="w-3 h-3" />
-                      <span>International shipping via <strong>DHL</strong></span>
+                      <span>International shipping via <strong>DHL and global carriers</strong></span>
                     </div>
                   )}
                 </div>
@@ -322,14 +334,14 @@ export default function Checkout() {
                 <div className="flex items-center gap-2 mb-4">
                   <Truck className="w-5 h-5 text-primary" />
                   <h2 className="font-display text-lg md:text-xl font-bold">
-                    {deliveryType === "domestic" ? "USPS Shipping Options" : "DHL International Shipping"}
+                    {deliveryType === "domestic" ? "Domestic Shipping Options" : "International Shipping Options"}
                   </h2>
                 </div>
 
                 <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
                   {deliveryType === "domestic"
-                    ? "📦 Shipping within the United States via USPS — America's trusted postal service."
-                    : "🌍 International shipping via DHL — Fast, reliable worldwide delivery."}
+                    ? "📦 Shipping within the United States with real carrier options and rates."
+                    : "🌍 International shipping with global carrier options and rates."}
                 </div>
 
                 {shippingLoading ? (
@@ -536,3 +548,4 @@ export default function Checkout() {
     </div>
   );
 }
+
