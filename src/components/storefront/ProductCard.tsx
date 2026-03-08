@@ -63,16 +63,17 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
+      transition={{ duration: 0.4, delay: index * 0.04 }}
     >
       <Link to={`/product/${product.slug}`} className="group block">
-        <div className="relative aspect-square rounded-2xl overflow-hidden bg-secondary mb-4">
+        <div className="relative aspect-[3/4] sm:aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-secondary mb-2.5 sm:mb-4">
           <img
             src={getSafeImageSrc(safeImages[imageIdx])}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
             onError={(e) => {
               if (imageIdx < safeImages.length - 1) {
                 setImageIdx((prev) => prev + 1);
@@ -87,25 +88,27 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1">
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1">
             {product.isNew && (
-              <span className="px-2 py-1 text-xs font-bold uppercase gold-gradient text-background rounded-full">New</span>
+              <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold uppercase gold-gradient text-background rounded-full">New</span>
             )}
             {discount > 0 && (
-              <span className="px-2 py-1 text-xs font-bold uppercase bg-destructive text-destructive-foreground rounded-full">-{discount}%</span>
+              <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold uppercase bg-destructive text-destructive-foreground rounded-full">-{discount}%</span>
             )}
           </div>
 
-          {/* Actions */}
-          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-            <button
-              onClick={handleWishlist}
-              className={`p-2.5 rounded-full backdrop-blur-sm transition-all ${
-                wishlisted ? "bg-primary text-primary-foreground" : "bg-white/10 hover:bg-white/20 text-foreground"
-              }`}
-            >
-              <Heart className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} />
-            </button>
+          {/* Mobile: always visible wishlist button */}
+          <button
+            onClick={handleWishlist}
+            className={`absolute top-2 sm:top-3 right-2 sm:right-3 p-2 rounded-full backdrop-blur-sm transition-all z-10 ${
+              wishlisted ? "bg-primary text-primary-foreground" : "bg-background/60 sm:bg-white/10 text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:translate-x-2 sm:group-hover:translate-x-0"
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill={wishlisted ? "currentColor" : "none"} />
+          </button>
+
+          {/* Desktop hover actions */}
+          <div className="absolute top-12 right-3 hidden sm:flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
             <button
               onClick={handleQuickAdd}
               className="p-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-primary-foreground backdrop-blur-sm transition-all text-foreground"
@@ -114,8 +117,8 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             </button>
           </div>
 
-          {/* Quick add bar */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+          {/* Quick add bar - desktop */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 hidden sm:block">
             <button
               onClick={handleQuickAdd}
               className="w-full py-2.5 rounded-xl gold-gradient text-background font-semibold text-sm hover:opacity-90 transition-opacity"
@@ -125,22 +128,20 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">{product.brand}</p>
-          <h3 className="font-display font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+        <div className="space-y-0.5 sm:space-y-1.5 px-0.5">
+          <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">{product.brand}</p>
+          <h3 className="font-display font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors line-clamp-1">
             {product.name}
           </h3>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-primary fill-primary" />
-              <span className="text-sm font-medium">{product.rating}</span>
-              <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
-            </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary fill-primary" />
+            <span className="text-xs sm:text-sm font-medium">{product.rating}</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">({product.reviewCount})</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg">${product.price}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="font-bold text-base sm:text-lg">${product.price}</span>
             {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground line-through">${product.originalPrice}</span>
             )}
           </div>
         </div>
@@ -148,4 +149,3 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
     </motion.div>
   );
 }
-
