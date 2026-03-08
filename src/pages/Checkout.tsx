@@ -433,7 +433,7 @@ export default function Checkout() {
                         <div className="text-right shrink-0 ml-2">
                           <p className="font-bold text-sm">${Number(m.price).toFixed(2)}</p>
                           {m.min_order_amount && totalPrice >= m.min_order_amount && (
-                            <p className="text-[10px] text-green-400 font-bold uppercase">Free</p>
+                            <p className="text-[10px] text-primary font-bold uppercase">Free</p>
                           )}
                         </div>
                       </button>
