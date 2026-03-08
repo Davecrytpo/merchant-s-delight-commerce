@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
