@@ -143,6 +143,51 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_cards: {
+        Row: {
+          code: string
+          created_at: string
+          current_balance: number
+          expires_at: string | null
+          id: string
+          initial_balance: number
+          is_active: boolean
+          message: string | null
+          purchaser_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          redeemed_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_balance?: number
+          expires_at?: string | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          message?: string | null
+          purchaser_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          redeemed_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_balance?: number
+          expires_at?: string | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          message?: string | null
+          purchaser_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          redeemed_by?: string | null
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string

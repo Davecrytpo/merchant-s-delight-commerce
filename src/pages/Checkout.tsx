@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X, Star, CreditCard as GiftCardIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
@@ -49,6 +49,9 @@ export default function Checkout() {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
   const [applyingCode, setApplyingCode] = useState(false);
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; balance: number; applied: number } | null>(null);
+  const [applyingGiftCard, setApplyingGiftCard] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: profile?.full_name?.split(" ")[0] || "",
@@ -138,8 +141,41 @@ export default function Checkout() {
     return Math.min(appliedDiscount.value, totalPrice);
   }, [appliedDiscount, totalPrice]);
 
-  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount)) * 0.08;
-  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount + shippingCost + tax);
+  const giftCardDiscount = appliedGiftCard?.applied || 0;
+
+  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount - giftCardDiscount)) * 0.08;
+  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount - giftCardDiscount + shippingCost + tax);
+
+  const handleApplyGiftCard = async () => {
+    if (!giftCardCode.trim()) return;
+    setApplyingGiftCard(true);
+    try {
+      const { data, error } = await supabase
+        .from("gift_cards")
+        .select("*")
+        .eq("code", giftCardCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+      if (error || !data) {
+        toast.error("Invalid or expired gift card");
+        setApplyingGiftCard(false);
+        return;
+      }
+      if (Number(data.current_balance) <= 0) {
+        toast.error("This gift card has no remaining balance");
+        setApplyingGiftCard(false);
+        return;
+      }
+      const balance = Number(data.current_balance);
+      const remaining = totalPrice - pointsDiscount - discountAmount;
+      const applied = Math.min(balance, Math.max(0, remaining));
+      setAppliedGiftCard({ code: data.code, balance, applied });
+      toast.success(`Gift card applied! $${applied.toFixed(2)} will be deducted`);
+    } catch {
+      toast.error("Failed to validate gift card");
+    }
+    setApplyingGiftCard(false);
+  };
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -290,13 +326,49 @@ export default function Checkout() {
   if (orderPlaced) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-lg mx-auto">
           <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-6">
             <Check className="w-10 h-10 text-background" />
           </div>
           <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">Order Confirmed!</h1>
           <p className="text-muted-foreground mb-2">Thank you for your purchase</p>
           {orderNumber && <p className="text-primary font-semibold mb-6">Order: {orderNumber}</p>}
+          
+          {/* Review prompt */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.5 }}
+            className="glass rounded-2xl p-5 mb-6 text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Star className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Love your new shoes?</p>
+                <p className="text-xs text-muted-foreground">Leave a review and earn <span className="text-primary font-bold">50 reward points</span> per product!</p>
+              </div>
+            </div>
+            <Link to="/orders" className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+              Go to My Orders to review your purchases <ChevronRight className="w-3 h-3" />
+            </Link>
+          </motion.div>
+
+          {/* Points earned */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.7 }}
+            className="glass rounded-2xl p-4 mb-6 flex items-center gap-3"
+          >
+            <Coins className="w-8 h-8 text-primary" />
+            <div className="text-left">
+              <p className="font-bold text-sm">Points on the way!</p>
+              <p className="text-xs text-muted-foreground">You'll earn points when your order is delivered. Check your <Link to="/account" className="text-primary hover:underline">rewards dashboard</Link>.</p>
+            </div>
+          </motion.div>
+
           <div className="flex gap-3 justify-center flex-wrap">
             <Link to="/orders" className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl inline-block">View Orders</Link>
             <Link to="/shop" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl inline-block">Continue Shopping</Link>
@@ -600,6 +672,44 @@ export default function Checkout() {
             )}
           </div>
 
+          {/* Gift Card */}
+          <div className="p-4 rounded-xl border border-border bg-secondary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Gift Card</span>
+            </div>
+            {appliedGiftCard ? (
+              <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-bold text-primary">{appliedGiftCard.code}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Balance: ${appliedGiftCard.balance.toFixed(2)} · Applied: ${appliedGiftCard.applied.toFixed(2)}
+                  </p>
+                </div>
+                <button onClick={() => { setAppliedGiftCard(null); setGiftCardCode(""); }} className="p-1 hover:bg-destructive/10 rounded-full">
+                  <X className="w-4 h-4 text-destructive" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-card rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary border border-border"
+                  placeholder="Enter gift card code"
+                  value={giftCardCode}
+                  onChange={(e) => setGiftCardCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyGiftCard()}
+                />
+                <button
+                  onClick={handleApplyGiftCard}
+                  disabled={applyingGiftCard || !giftCardCode.trim()}
+                  className="gold-gradient text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                >
+                  {applyingGiftCard ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
@@ -615,6 +725,12 @@ export default function Checkout() {
               <div className="flex justify-between text-primary">
                 <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Code: {appliedDiscount?.code}</span>
                 <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {giftCardDiscount > 0 && (
+              <div className="flex justify-between text-primary">
+                <span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Gift Card</span>
+                <span>-${giftCardDiscount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between">

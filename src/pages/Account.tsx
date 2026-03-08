@@ -246,46 +246,110 @@ export default function Account() {
 
         {activeSection === "rewards" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="glass rounded-2xl p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl gold-gradient flex items-center justify-center">
-                  <Coins className="w-6 h-6 text-background" />
+            {/* Points balance hero */}
+            <div className="glass rounded-2xl p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+                <div className="w-16 h-16 rounded-2xl gold-gradient flex items-center justify-center shrink-0">
+                  <Coins className="w-8 h-8 text-background" />
                 </div>
                 <div>
-                  <h2 className="font-display text-2xl font-bold">{rewardPoints} <span className="text-sm text-muted-foreground font-normal">points</span></h2>
-                  {pointsValue > 0 && <p className="text-sm text-primary font-bold">= ${pointsValue} discount available</p>}
+                  <h2 className="font-display text-3xl md:text-4xl font-bold">{rewardPoints} <span className="text-base text-muted-foreground font-normal">points</span></h2>
+                  {pointsValue > 0 && <p className="text-sm text-primary font-bold mt-1">= ${pointsValue} discount available at checkout</p>}
+                  {rewardPoints < 100 && rewardPoints > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">{100 - rewardPoints} more points to unlock your first $10 discount</p>
+                      <div className="h-2 w-48 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full gold-gradient rounded-full transition-all" style={{ width: `${rewardPoints}%` }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">How it Works</h3>
-                <div className="grid gap-3">
-                  {[
-                    { emoji: "🛍️", title: "Earn on Purchases", desc: "1 point per $1 spent (awarded on delivery)" },
-                    { emoji: "⭐", title: "Write a Review", desc: "Earn 50 points per product review" },
-                    { emoji: "💰", title: "Redeem for Discounts", desc: "100 points = $10 discount at checkout" },
-                  ].map((item) => (
-                    <div key={item.title} className="flex items-start gap-3 p-3 bg-secondary/30 rounded-xl">
-                      <span className="text-xl">{item.emoji}</span>
-                      <div>
-                        <p className="font-bold text-sm">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+              {/* How to earn */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-primary" /> How to Earn Points
+                  </h3>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {[
+                      { emoji: "🛍️", title: "Shop & Earn", desc: "Earn 1 point for every $1 you spend. Points are awarded when your order is delivered.", value: "1pt / $1" },
+                      { emoji: "⭐", title: "Write Reviews", desc: "Share your experience on any product you've purchased and earn 50 points per review.", value: "50 pts" },
+                      { emoji: "🎁", title: "Refer Friends", desc: "Coming soon! Earn bonus points when friends make their first purchase.", value: "Coming Soon" },
+                    ].map((item) => (
+                      <div key={item.title} className="p-4 bg-secondary/30 rounded-xl border border-border/30 hover:border-primary/20 transition-colors">
+                        <span className="text-2xl mb-2 block">{item.emoji}</span>
+                        <p className="font-bold text-sm mb-1">{item.title}</p>
+                        <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{item.desc}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-full">{item.value}</span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-                  <h4 className="font-bold text-sm mb-2">Points Conversion Table</h4>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                {/* How to redeem */}
+                <div>
+                  <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-primary" /> How to Redeem
+                  </h3>
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-5">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                        <span className="text-background font-bold">💰</span>
+                      </div>
+                      <div>
+                        <p className="font-bold mb-1">Use Points at Checkout</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">When you have 100+ points, a "ShoeShop Rewards" checkbox will appear at checkout. Simply check it to apply your points as a discount. Every 100 points = $10 off your order!</p>
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">Points Conversion</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                      {[
+                        { pts: 100, val: "$10" },
+                        { pts: 250, val: "$25" },
+                        { pts: 500, val: "$50" },
+                        { pts: 1000, val: "$100" },
+                      ].map((tier) => (
+                        <div key={tier.pts} className="p-3 bg-secondary/30 rounded-lg border border-border/20">
+                          <p className="font-bold text-primary text-lg">{tier.pts}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">points</p>
+                          <p className="font-bold text-sm mt-1">{tier.val}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gift cards info */}
+                <div>
+                  <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-primary" /> Gift Cards
+                  </h3>
+                  <div className="bg-secondary/30 border border-border/30 rounded-xl p-5">
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                      Have a gift card? You can apply it at checkout alongside reward points and discount codes for maximum savings! Gift card balances carry over if not fully used.
+                    </p>
+                    <Link to="/shop" className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+                      Start Shopping <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* FAQ */}
+                <div className="bg-secondary/20 rounded-xl p-5 border border-border/20">
+                  <h3 className="font-bold text-sm mb-4">Frequently Asked Questions</h3>
+                  <div className="space-y-3 text-sm">
                     {[
-                      { pts: 100, val: "$10" },
-                      { pts: 500, val: "$50" },
-                      { pts: 1000, val: "$100" },
-                    ].map((tier) => (
-                      <div key={tier.pts} className="p-2 bg-secondary/30 rounded-lg">
-                        <p className="font-bold text-primary">{tier.pts} pts</p>
-                        <p className="text-muted-foreground">{tier.val}</p>
+                      { q: "When do I receive my purchase points?", a: "Points are automatically added to your account when your order status changes to 'delivered'." },
+                      { q: "Do points expire?", a: "No! Your reward points never expire as long as your account is active." },
+                      { q: "Can I combine points with discount codes?", a: "Yes! You can stack reward points, discount codes, and gift cards at checkout." },
+                      { q: "What happens to unused gift card balance?", a: "Remaining balance stays on the gift card for future purchases." },
+                    ].map((faq) => (
+                      <div key={faq.q} className="pb-3 border-b border-border/20 last:border-0 last:pb-0">
+                        <p className="font-semibold text-foreground">{faq.q}</p>
+                        <p className="text-muted-foreground text-xs mt-1">{faq.a}</p>
                       </div>
                     ))}
                   </div>
