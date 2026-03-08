@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, ShoppingBag } from "lucide-react";
+import { MessageSquare, X, Send, Bot, User, Loader2, ShoppingBag } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -62,6 +63,18 @@ export default function AIChatWidget() {
     [products]
   );
 
+  const getFunctionAuthHeaders = useCallback(async () => {
+    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token || publishableKey;
+
+    return {
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+      Authorization: `Bearer ${token}`,
+    };
+  }, []);
+
   const handleSend = async (text: string) => {
     if (!text.trim() || isStreaming) return;
 
@@ -94,16 +107,13 @@ export default function AIChatWidget() {
     try {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: await getFunctionAuthHeaders(),
         body: JSON.stringify({ messages: newHistory }),
       });
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || "AI service unavailable");
+        throw new Error(errData.error || `AI service unavailable (${resp.status})`);
       }
 
       if (!resp.body) throw new Error("No response body");
@@ -155,6 +165,9 @@ export default function AIChatWidget() {
       );
     } catch (e: any) {
       console.error("AI chat error:", e);
+      const msg = String(e?.message || "");
+      const looksLikeEnvMismatch = msg.includes("Failed to fetch") || msg.includes("404") || msg.includes("NetworkError");
+
       setMessages((prev) => {
         const filtered = prev.filter((m) => m.id !== "streaming");
         return [
@@ -162,7 +175,9 @@ export default function AIChatWidget() {
           {
             id: Date.now().toString(),
             type: "bot",
-            text: "I'm having trouble connecting right now. Please try again in a moment! 🙏",
+            text: looksLikeEnvMismatch
+              ? "I can’t reach the AI endpoint right now. Please verify your local backend URL and publishable key match this project, then try again."
+              : "I'm having trouble connecting right now. Please try again in a moment! 🙏",
             timestamp: new Date(),
             suggestions: INITIAL_SUGGESTIONS,
           },
