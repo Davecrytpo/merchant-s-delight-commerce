@@ -17,11 +17,15 @@ const categoryFallbackImages: Record<string, string> = {
   running: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1000&q=80",
   casual: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1000&q=80",
   training: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=1000&q=80",
-  hiking: "https://images.unsplash.com/photo-1539185441755-769473a23570?w=1000&q=80",
-  office: "https://images.pexels.com/photos/19090/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1000",
-  luxury: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=1000",
-  kids: "https://images.pexels.com/photos/1456706/pexels-photo-1456706.jpeg?auto=compress&cs=tinysrgb&w=1000",
+  hiking: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=1000&q=80",
   lifestyle: "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=1000&q=80",
+  loafers: "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=1000&q=80",
+  boots: "https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=1000&q=80",
+  sandals: "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=1000&q=80",
+  oxford: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=1000&q=80",
+  formal: "https://images.unsplash.com/photo-1626947346165-4c2288dadc2a?w=1000&q=80",
+  basketball: "https://images.unsplash.com/photo-1556906781-9a412961c28c?w=1000&q=80",
+  skateboarding: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1000&q=80",
 };
 
 export default function Home() {
