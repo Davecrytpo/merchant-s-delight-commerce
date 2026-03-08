@@ -4,6 +4,7 @@ import HeroCarousel from "@/components/storefront/HeroCarousel";
 import ProductCard from "@/components/storefront/ProductCard";
 import { useProducts, useCategories } from "@/hooks/useProducts";
 import { Truck, Shield, RotateCcw, Headphones, Star, ArrowRight, Zap, Loader2 } from "lucide-react";
+import { IMAGE_PLACEHOLDER, getSafeImageSrc } from "@/lib/imageFallback";
 
 const features = [
   { icon: Truck, title: "Free Shipping", desc: "On orders over $100", link: "/faq" },
@@ -118,13 +119,13 @@ export default function Home() {
                     className="group relative aspect-[4/3] rounded-2xl overflow-hidden block"
                   >
                     <img
-                      src={cat.image_url || categoryFallbackImages[cat.slug] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
+                      src={getSafeImageSrc(cat.image_url || categoryFallbackImages[cat.slug])}
                       alt={cat.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          categoryFallbackImages[cat.slug] ||
-                          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80";
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = IMAGE_PLACEHOLDER;
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
@@ -249,3 +250,4 @@ export default function Home() {
     </>
   );
 }
+

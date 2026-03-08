@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { products, SHOE_IMAGES } from "@/data/products";
+import { SHOE_IMAGES } from "@/data/products";
+import { IMAGE_PLACEHOLDER, getSafeImageSrc } from "@/lib/imageFallback";
 
 const slides = [
   {
@@ -96,9 +97,14 @@ export default function HeroCarousel() {
           className="absolute inset-0"
         >
           <img
-            src={slide.image}
+            src={getSafeImageSrc(slide.image)}
             alt={slide.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.onerror = null;
+              target.src = IMAGE_PLACEHOLDER;
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/30" />
@@ -192,10 +198,20 @@ export default function HeroCarousel() {
             }`}
             whileHover={{ scale: 1.1 }}
           >
-            <img src={s.image} alt="" className="w-full h-full object-cover" />
+            <img
+              src={getSafeImageSrc(s.image)}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = IMAGE_PLACEHOLDER;
+              }}
+            />
           </motion.button>
         ))}
       </div>
     </section>
   );
 }
+
