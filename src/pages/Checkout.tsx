@@ -562,6 +562,44 @@ export default function Checkout() {
             </div>
           )}
 
+          {/* Discount Code */}
+          <div className="p-4 rounded-xl border border-border bg-secondary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Discount Code</span>
+            </div>
+            {appliedDiscount ? (
+              <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-bold text-primary">{appliedDiscount.code}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}% off` : `$${appliedDiscount.value.toFixed(2)} off`}
+                  </p>
+                </div>
+                <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="p-1 hover:bg-destructive/10 rounded-full">
+                  <X className="w-4 h-4 text-destructive" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-card rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary border border-border"
+                  placeholder="Enter code"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
+                />
+                <button
+                  onClick={handleApplyDiscount}
+                  disabled={applyingCode || !discountCode.trim()}
+                  className="gold-gradient text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                >
+                  {applyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
@@ -571,6 +609,12 @@ export default function Checkout() {
               <div className="flex justify-between text-primary">
                 <span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Reward Discount</span>
                 <span>-${pointsDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-primary">
+                <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Code: {appliedDiscount?.code}</span>
+                <span>-${discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between">
