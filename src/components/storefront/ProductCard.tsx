@@ -6,6 +6,7 @@ import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { toast } from "sonner";
+import { IMAGE_PLACEHOLDER, getSafeImageSrc } from "@/lib/imageFallback";
 
 export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addItem } = useCart();
@@ -69,11 +70,17 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
       <Link to={`/product/${product.slug}`} className="group block">
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-secondary mb-4">
           <img
-            src={safeImages[imageIdx] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80"}
+            src={getSafeImageSrc(safeImages[imageIdx])}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            onError={() => {
-              if (imageIdx < safeImages.length - 1) setImageIdx(imageIdx + 1);
+            onError={(e) => {
+              if (imageIdx < safeImages.length - 1) {
+                setImageIdx((prev) => prev + 1);
+                return;
+              }
+              const target = e.currentTarget as HTMLImageElement;
+              target.onerror = null;
+              target.src = IMAGE_PLACEHOLDER;
             }}
           />
           {/* Overlay */}
@@ -141,3 +148,4 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
     </motion.div>
   );
 }
+
