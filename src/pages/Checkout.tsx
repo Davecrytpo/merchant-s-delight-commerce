@@ -49,6 +49,9 @@ export default function Checkout() {
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
   const [applyingCode, setApplyingCode] = useState(false);
+  const [giftCardCode, setGiftCardCode] = useState("");
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; balance: number; applied: number } | null>(null);
+  const [applyingGiftCard, setApplyingGiftCard] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: profile?.full_name?.split(" ")[0] || "",
