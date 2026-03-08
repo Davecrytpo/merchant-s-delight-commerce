@@ -395,7 +395,7 @@ export default function Checkout() {
                   </h2>
                 </div>
 
-                <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
+                <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-primary/10 text-primary border border-primary/20" : "bg-accent/10 text-accent border border-accent/20"}`}>
                   {deliveryType === "domestic"
                     ? "📦 US destination detected. Carrier automatically set to USPS."
                     : "🌍 International destination detected. Carrier automatically set to DHL."}
