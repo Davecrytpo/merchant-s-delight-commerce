@@ -4,7 +4,7 @@ import { Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 
 const STATUS_TABS = [
-  { key: "all", label: "All Orders" },
+  { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
   { key: "processing", label: "Processing" },
   { key: "shipped", label: "Shipped" },
@@ -41,22 +41,22 @@ export default function AdminOrders() {
   }));
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold">Orders</h1>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="font-display text-xl md:text-2xl font-bold">Orders</h1>
 
-      {/* Status Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {/* Status Tabs - horizontally scrollable */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
         {tabCounts.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === t.key
                 ? "gold-gradient text-background shadow-lg shadow-primary/20"
                 : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t.label} <span className="ml-1 opacity-70">({t.count})</span>
+            {t.label} <span className="ml-0.5 opacity-70">({t.count})</span>
           </button>
         ))}
       </div>
@@ -72,7 +72,43 @@ export default function AdminOrders() {
         />
       </div>
 
-      <div className="glass rounded-2xl overflow-hidden overflow-x-auto">
+      {/* Mobile card view */}
+      <div className="md:hidden space-y-3">
+        {isLoading ? (
+          <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
+        ) : !filtered.length ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">No {activeTab !== "all" ? activeTab : ""} orders found</div>
+        ) : (
+          filtered.map((o: any) => (
+            <div key={o.id} className="glass rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-sm">{o.order_number}</p>
+                  <p className="text-[10px] text-muted-foreground">{format(new Date(o.created_at), "MMM d, yyyy")}</p>
+                </div>
+                <p className="font-bold text-sm">${Number(o.total).toFixed(2)}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{(o as any).profiles?.full_name || "Guest"}</p>
+                <select
+                  value={o.status}
+                  onChange={(e) => updateStatus.mutate({ id: o.id, status: e.target.value })}
+                  className={`rounded-lg px-2 py-1 text-xs outline-none font-medium ${getStatusColor(o.status)} border-0`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden md:block glass rounded-2xl overflow-hidden overflow-x-auto">
         {isLoading ? (
           <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
         ) : !filtered.length ? (
@@ -95,7 +131,6 @@ export default function AdminOrders() {
                   <td className="py-3 px-4 text-muted-foreground text-xs">{format(new Date(o.created_at), "MMM d, yyyy")}</td>
                   <td className="py-3 px-4">
                     <p className="font-medium text-xs">{(o as any).profiles?.full_name || "Guest"}</p>
-                    <p className="text-[10px] text-muted-foreground">{(o as any).profiles?.email}</p>
                   </td>
                   <td className="py-3 px-4">
                     <select
