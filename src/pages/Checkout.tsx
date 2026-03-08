@@ -367,12 +367,12 @@ export default function Checkout() {
 
                 <div className="mt-2 flex items-center gap-2">
                   {formData.country === "US" ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
+                    <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full">
                       <Flag className="w-3 h-3" />
                       <span>Domestic shipping via <strong>USPS</strong></span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
+                    <div className="flex items-center gap-2 text-xs bg-accent/10 text-accent px-3 py-1.5 rounded-full">
                       <Globe className="w-3 h-3" />
                       <span>International shipping via <strong>DHL</strong></span>
                     </div>
