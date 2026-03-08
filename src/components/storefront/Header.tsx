@@ -71,7 +71,7 @@ export default function Header() {
     <>
       <motion.header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "glass py-3" : "bg-transparent py-5"
+          scrolled ? "glass py-3 shadow-md" : "bg-background/80 backdrop-blur-sm py-5"
         }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -158,8 +158,8 @@ export default function Header() {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div className="fixed inset-0 z-[100] bg-background lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="absolute inset-y-0 right-0 w-[85%] max-w-sm glass border-l border-border flex flex-col" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25 }}>
+          <motion.div className="fixed inset-0 z-[100] bg-foreground/20 backdrop-blur-sm lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="absolute inset-y-0 right-0 w-[85%] max-w-sm bg-card border-l border-border shadow-2xl flex flex-col" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25 }}>
               <div className="p-6 flex items-center justify-between border-b border-border">
                 <span className="font-display text-xl font-bold">Menu</span>
                 <button onClick={() => setMobileOpen(false)} className="p-2 hover:bg-secondary rounded-full"><X className="w-6 h-6" /></button>
