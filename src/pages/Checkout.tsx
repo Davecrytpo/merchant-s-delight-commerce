@@ -141,8 +141,41 @@ export default function Checkout() {
     return Math.min(appliedDiscount.value, totalPrice);
   }, [appliedDiscount, totalPrice]);
 
-  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount)) * 0.08;
-  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount + shippingCost + tax);
+  const giftCardDiscount = appliedGiftCard?.applied || 0;
+
+  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount - giftCardDiscount)) * 0.08;
+  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount - giftCardDiscount + shippingCost + tax);
+
+  const handleApplyGiftCard = async () => {
+    if (!giftCardCode.trim()) return;
+    setApplyingGiftCard(true);
+    try {
+      const { data, error } = await supabase
+        .from("gift_cards")
+        .select("*")
+        .eq("code", giftCardCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+      if (error || !data) {
+        toast.error("Invalid or expired gift card");
+        setApplyingGiftCard(false);
+        return;
+      }
+      if (Number(data.current_balance) <= 0) {
+        toast.error("This gift card has no remaining balance");
+        setApplyingGiftCard(false);
+        return;
+      }
+      const balance = Number(data.current_balance);
+      const remaining = totalPrice - pointsDiscount - discountAmount;
+      const applied = Math.min(balance, Math.max(0, remaining));
+      setAppliedGiftCard({ code: data.code, balance, applied });
+      toast.success(`Gift card applied! $${applied.toFixed(2)} will be deducted`);
+    } catch {
+      toast.error("Failed to validate gift card");
+    }
+    setApplyingGiftCard(false);
+  };
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
