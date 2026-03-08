@@ -144,8 +144,8 @@ export default function HeroCarousel() {
               target.src = IMAGE_PLACEHOLDER;
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-foreground/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/75 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
           {/* Grain overlay */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")" }} />
         </motion.div>
@@ -171,7 +171,7 @@ export default function HeroCarousel() {
               <Sparkles className="w-3.5 h-3.5" />
               {slide.accent} Collection
             </motion.span>
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-none mb-4 text-white" style={{ perspective: "1000px" }}>
+            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-none mb-4" style={{ perspective: "1000px" }}>
               <span className="block overflow-hidden">
                 {slide.title.split("").map((char, i) => (
                   <motion.span
@@ -204,7 +204,7 @@ export default function HeroCarousel() {
               </span>
             </h1>
             <motion.p
-              className="text-lg md:text-xl text-white/70 mb-8 max-w-lg"
+              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.8 }}
@@ -225,7 +225,7 @@ export default function HeroCarousel() {
               </Link>
               <Link
                 to="/shop"
-                className="border border-white/30 text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/10 hover:border-white/50 transition-all duration-300 text-lg"
+                className="border border-foreground/20 text-foreground font-semibold px-8 py-4 rounded-xl hover:bg-foreground/5 hover:border-foreground/40 transition-all duration-300 text-lg"
               >
                 View All
               </Link>
@@ -245,7 +245,7 @@ export default function HeroCarousel() {
                 className="relative h-1 rounded-full overflow-hidden transition-all duration-500"
                 style={{ width: i === current ? 48 : 24 }}
               >
-                <div className="absolute inset-0 bg-white/20 rounded-full" />
+                <div className="absolute inset-0 bg-foreground/15 rounded-full" />
                 {i === current && (
                   <motion.div
                     className="absolute inset-0 rounded-full"
@@ -309,7 +309,7 @@ export default function HeroCarousel() {
         transition={{ delay: 2 }}
       >
         <motion.div
-          className="w-5 h-8 rounded-full border-2 border-white/40 flex justify-center pt-1"
+          className="w-5 h-8 rounded-full border-2 border-foreground/30 flex justify-center pt-1"
           animate={{ opacity: [0.3, 0.7, 0.3] }}
           transition={{ repeat: Infinity, duration: 2 }}
         >
