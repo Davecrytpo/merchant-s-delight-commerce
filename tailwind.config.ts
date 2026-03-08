@@ -46,8 +46,11 @@ export default {
         },
         gold: "hsl(var(--gold))",
         "gold-light": "hsl(var(--gold-light))",
+        "gold-glow": "hsl(var(--gold-glow))",
         surface: "hsl(var(--surface))",
         "surface-hover": "hsl(var(--surface-hover))",
+        ember: "hsl(var(--ember))",
+        "amber-warm": "hsl(var(--amber-warm))",
       },
       fontFamily: {
         display: ["Playfair Display", "serif"],
