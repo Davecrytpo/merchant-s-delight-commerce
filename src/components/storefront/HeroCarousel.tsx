@@ -85,29 +85,29 @@ export default function HeroCarousel() {
   };
 
   const textVariants = {
-    enter: { opacity: 0, y: 100, filter: "blur(20px)", scale: 0.9 },
+    enter: { opacity: 0, y: 60, filter: "blur(12px)", scale: 0.95 },
     center: {
       opacity: 1,
       y: 0,
       filter: "blur(0px)",
       scale: 1,
-      transition: { duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] },
     },
-    exit: { opacity: 0, y: -60, filter: "blur(10px)", scale: 0.95, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: -40, filter: "blur(8px)", scale: 0.95, transition: { duration: 0.4 } },
   };
 
   const letterVariants = {
-    hidden: { opacity: 0, y: 50, rotateX: -90 },
+    hidden: { opacity: 0, y: 40, rotateX: -90 },
     visible: (i: number) => ({
       opacity: 1,
       y: 0,
       rotateX: 0,
-      transition: { delay: 0.5 + i * 0.04, duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+      transition: { delay: 0.5 + i * 0.03, duration: 0.5, ease: [0.22, 1, 0.36, 1] },
     }),
   };
 
   return (
-    <section className="relative h-[90vh] md:h-screen overflow-hidden bg-background">
+    <section className="relative h-[85vh] sm:h-[90vh] md:h-screen overflow-hidden bg-background">
       {/* Ambient glow */}
       <div className="absolute inset-0 z-[1] pointer-events-none">
         <motion.div
@@ -115,10 +115,10 @@ export default function HeroCarousel() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.15 }}
           transition={{ duration: 2 }}
-          className="absolute bottom-0 left-0 w-[60%] h-[60%] rounded-full"
+          className="absolute bottom-0 left-0 w-[80%] md:w-[60%] h-[50%] md:h-[60%] rounded-full"
           style={{
             background: "radial-gradient(circle, hsl(36 100% 55%), transparent 70%)",
-            filter: "blur(100px)",
+            filter: "blur(80px)",
           }}
         />
       </div>
@@ -144,15 +144,14 @@ export default function HeroCarousel() {
               target.src = IMAGE_PLACEHOLDER;
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/75 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 md:via-background/75 to-background/30 md:to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
-          {/* Grain overlay */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")" }} />
         </motion.div>
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 h-full container mx-auto px-4 flex items-center">
+      <div className="relative z-10 h-full container mx-auto px-4 flex items-end pb-28 sm:pb-20 md:items-center md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
@@ -160,18 +159,18 @@ export default function HeroCarousel() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="max-w-2xl"
+            className="max-w-lg md:max-w-2xl"
           >
             <motion.span
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 text-primary text-sm font-medium mb-6 glow-border"
+              className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1 md:py-1.5 rounded-full border border-primary/30 text-primary text-xs md:text-sm font-medium mb-4 md:mb-6 glow-border"
               initial={{ opacity: 0, scale: 0.8, x: -20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5" />
               {slide.accent} Collection
             </motion.span>
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-none mb-4" style={{ perspective: "1000px" }}>
+            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-3 md:mb-4" style={{ perspective: "1000px" }}>
               <span className="block overflow-hidden">
                 {slide.title.split("").map((char, i) => (
                   <motion.span
@@ -204,7 +203,7 @@ export default function HeroCarousel() {
               </span>
             </h1>
             <motion.p
-              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg"
+              className="text-sm sm:text-base md:text-xl text-muted-foreground mb-6 md:mb-8 max-w-md"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.8 }}
@@ -212,20 +211,20 @@ export default function HeroCarousel() {
               {slide.subtitle}
             </motion.p>
             <motion.div
-              className="flex gap-4"
+              className="flex gap-3"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.1, duration: 0.8 }}
             >
               <Link
                 to={slide.link}
-                className="gold-gradient text-primary-foreground font-semibold px-8 py-4 rounded-xl hover:shadow-[0_0_30px_-5px_hsl(36_100%_55%_/_0.5)] transition-all duration-500 text-lg glow-border"
+                className="gold-gradient text-primary-foreground font-semibold px-5 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl hover:shadow-[0_0_30px_-5px_hsl(36_100%_55%_/_0.5)] transition-all duration-500 text-sm md:text-lg glow-border"
               >
                 {slide.cta}
               </Link>
               <Link
                 to="/shop"
-                className="border border-foreground/20 text-foreground font-semibold px-8 py-4 rounded-xl hover:bg-foreground/5 hover:border-foreground/40 transition-all duration-300 text-lg"
+                className="border border-foreground/20 text-foreground font-semibold px-5 sm:px-6 md:px-8 py-3 md:py-4 rounded-xl hover:bg-foreground/5 hover:border-foreground/40 transition-all duration-300 text-sm md:text-lg"
               >
                 View All
               </Link>
@@ -235,7 +234,7 @@ export default function HeroCarousel() {
       </div>
 
       {/* Navigation */}
-      <div className="absolute bottom-8 left-0 right-0 z-20">
+      <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-0 right-0 z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="flex gap-2 items-center">
             {slides.map((_, i) => (
@@ -243,7 +242,7 @@ export default function HeroCarousel() {
                 key={i}
                 onClick={() => goTo(i)}
                 className="relative h-1 rounded-full overflow-hidden transition-all duration-500"
-                style={{ width: i === current ? 48 : 24 }}
+                style={{ width: i === current ? 40 : 20 }}
               >
                 <div className="absolute inset-0 bg-foreground/15 rounded-full" />
                 {i === current && (
@@ -261,21 +260,21 @@ export default function HeroCarousel() {
           <div className="flex gap-2">
             <button
               onClick={prev}
-              className="w-12 h-12 rounded-full glass glass-hover flex items-center justify-center hover:glow-border transition-all duration-300"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full glass glass-hover flex items-center justify-center hover:glow-border transition-all duration-300"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <button
               onClick={next}
-              className="w-12 h-12 rounded-full glass glass-hover flex items-center justify-center hover:glow-border transition-all duration-300"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full glass glass-hover flex items-center justify-center hover:glow-border transition-all duration-300"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Floating product cards */}
+      {/* Floating product cards - desktop only */}
       <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3 z-20">
         {slides.map((s, i) => (
           <motion.button
@@ -301,7 +300,7 @@ export default function HeroCarousel() {
         ))}
       </div>
 
-      {/* Scroll indicator */}
+      {/* Scroll indicator - tablet+ only */}
       <motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 hidden md:flex flex-col items-center gap-2"
         initial={{ opacity: 0 }}
