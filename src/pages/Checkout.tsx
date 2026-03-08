@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
@@ -46,6 +46,9 @@ export default function Checkout() {
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [usePoints, setUsePoints] = useState(false);
   const [deliveryType, setDeliveryType] = useState<"domestic" | "international" | null>(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
+  const [applyingCode, setApplyingCode] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: profile?.full_name?.split(" ")[0] || "",
@@ -127,8 +130,49 @@ export default function Checkout() {
     return Math.min(maxDiscount, totalPrice);
   }, [usePoints, profile?.reward_points, totalPrice]);
 
-  const tax = Math.max(0, (totalPrice - pointsDiscount)) * 0.08;
-  const total = Math.max(0, totalPrice - pointsDiscount + shippingCost + tax);
+  const discountAmount = useMemo(() => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.type === 'percentage') {
+      return (totalPrice * appliedDiscount.value) / 100;
+    }
+    return Math.min(appliedDiscount.value, totalPrice);
+  }, [appliedDiscount, totalPrice]);
+
+  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount)) * 0.08;
+  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount + shippingCost + tax);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setApplyingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from("discount_codes")
+        .select("*")
+        .eq("code", discountCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+      if (error || !data) {
+        toast.error("Invalid or expired discount code");
+        setApplyingCode(false);
+        return;
+      }
+      if (data.max_uses && data.current_uses >= data.max_uses) {
+        toast.error("This code has reached its maximum uses");
+        setApplyingCode(false);
+        return;
+      }
+      if (data.min_order_amount && totalPrice < Number(data.min_order_amount)) {
+        toast.error(`Minimum order of $${Number(data.min_order_amount).toFixed(2)} required`);
+        setApplyingCode(false);
+        return;
+      }
+      setAppliedDiscount({ code: data.code, type: data.discount_type, value: Number(data.discount_value) });
+      toast.success(`Discount "${data.code}" applied!`);
+    } catch {
+      toast.error("Failed to validate code");
+    }
+    setApplyingCode(false);
+  };
 
   const update = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
 
@@ -323,12 +367,12 @@ export default function Checkout() {
 
                 <div className="mt-2 flex items-center gap-2">
                   {formData.country === "US" ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full">
+                    <div className="flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full">
                       <Flag className="w-3 h-3" />
                       <span>Domestic shipping via <strong>USPS</strong></span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-yellow-500/10 text-yellow-400 px-3 py-1.5 rounded-full">
+                    <div className="flex items-center gap-2 text-xs bg-accent/10 text-accent px-3 py-1.5 rounded-full">
                       <Globe className="w-3 h-3" />
                       <span>International shipping via <strong>DHL</strong></span>
                     </div>
@@ -351,7 +395,7 @@ export default function Checkout() {
                   </h2>
                 </div>
 
-                <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"}`}>
+                <div className={`p-3 rounded-xl text-xs font-medium ${deliveryType === "domestic" ? "bg-primary/10 text-primary border border-primary/20" : "bg-accent/10 text-accent border border-accent/20"}`}>
                   {deliveryType === "domestic"
                     ? "📦 US destination detected. Carrier automatically set to USPS."
                     : "🌍 International destination detected. Carrier automatically set to DHL."}
@@ -389,7 +433,7 @@ export default function Checkout() {
                         <div className="text-right shrink-0 ml-2">
                           <p className="font-bold text-sm">${Number(m.price).toFixed(2)}</p>
                           {m.min_order_amount && totalPrice >= m.min_order_amount && (
-                            <p className="text-[10px] text-green-400 font-bold uppercase">Free</p>
+                            <p className="text-[10px] text-primary font-bold uppercase">Free</p>
                           )}
                         </div>
                       </button>
@@ -518,6 +562,44 @@ export default function Checkout() {
             </div>
           )}
 
+          {/* Discount Code */}
+          <div className="p-4 rounded-xl border border-border bg-secondary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Discount Code</span>
+            </div>
+            {appliedDiscount ? (
+              <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-bold text-primary">{appliedDiscount.code}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}% off` : `$${appliedDiscount.value.toFixed(2)} off`}
+                  </p>
+                </div>
+                <button onClick={() => { setAppliedDiscount(null); setDiscountCode(""); }} className="p-1 hover:bg-destructive/10 rounded-full">
+                  <X className="w-4 h-4 text-destructive" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-card rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary border border-border"
+                  placeholder="Enter code"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyDiscount()}
+                />
+                <button
+                  onClick={handleApplyDiscount}
+                  disabled={applyingCode || !discountCode.trim()}
+                  className="gold-gradient text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                >
+                  {applyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
@@ -527,6 +609,12 @@ export default function Checkout() {
               <div className="flex justify-between text-primary">
                 <span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Reward Discount</span>
                 <span>-${pointsDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-primary">
+                <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Code: {appliedDiscount?.code}</span>
+                <span>-${discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between">
