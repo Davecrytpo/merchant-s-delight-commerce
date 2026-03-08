@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X } from "lucide-react";
+import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X, Star, CreditCard as GiftCardIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
@@ -290,13 +290,49 @@ export default function Checkout() {
   if (orderPlaced) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-lg mx-auto">
           <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center mx-auto mb-6">
             <Check className="w-10 h-10 text-background" />
           </div>
           <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">Order Confirmed!</h1>
           <p className="text-muted-foreground mb-2">Thank you for your purchase</p>
           {orderNumber && <p className="text-primary font-semibold mb-6">Order: {orderNumber}</p>}
+          
+          {/* Review prompt */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.5 }}
+            className="glass rounded-2xl p-5 mb-6 text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Star className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">Love your new shoes?</p>
+                <p className="text-xs text-muted-foreground">Leave a review and earn <span className="text-primary font-bold">50 reward points</span> per product!</p>
+              </div>
+            </div>
+            <Link to="/orders" className="text-primary text-xs font-bold hover:underline flex items-center gap-1">
+              Go to My Orders to review your purchases <ChevronRight className="w-3 h-3" />
+            </Link>
+          </motion.div>
+
+          {/* Points earned */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.7 }}
+            className="glass rounded-2xl p-4 mb-6 flex items-center gap-3"
+          >
+            <Coins className="w-8 h-8 text-primary" />
+            <div className="text-left">
+              <p className="font-bold text-sm">Points on the way!</p>
+              <p className="text-xs text-muted-foreground">You'll earn points when your order is delivered. Check your <Link to="/account" className="text-primary hover:underline">rewards dashboard</Link>.</p>
+            </div>
+          </motion.div>
+
           <div className="flex gap-3 justify-center flex-wrap">
             <Link to="/orders" className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl inline-block">View Orders</Link>
             <Link to="/shop" className="bg-secondary text-foreground font-semibold px-6 py-3 rounded-xl inline-block">Continue Shopping</Link>
