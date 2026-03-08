@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Truck, Plus, Edit, Trash2, Loader2, Save, X, Globe } from "lucide-react";
+import { Truck, Plus, Edit, Trash2, Loader2, Save, X } from "lucide-react";
 import { useShippingMethods } from "@/hooks/useShipping";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -55,12 +55,12 @@ export default function AdminShipping() {
     });
   };
 
-  const inputClass = "bg-secondary rounded-xl px-4 py-2 outline-none w-full text-sm";
+  const inputClass = "bg-secondary rounded-xl px-4 py-2.5 outline-none w-full text-sm focus:ring-2 focus:ring-primary/50";
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="font-display text-2xl font-bold">Shipping Carriers</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h1 className="font-display text-xl md:text-2xl font-bold">Shipping Carriers</h1>
         {!isAdding && !editingId && (
           <button 
             onClick={() => setIsAdding(true)}
@@ -72,8 +72,8 @@ export default function AdminShipping() {
       </div>
 
       {(isAdding || editingId) && (
-        <form onSubmit={handleSave} className="glass p-6 rounded-2xl space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+        <form onSubmit={handleSave} className="glass p-4 md:p-6 rounded-xl md:rounded-2xl space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Method Name</label>
             <input required placeholder="e.g. Standard Ground" className={inputClass} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
             <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Carrier</label>
@@ -88,17 +88,50 @@ export default function AdminShipping() {
           <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Description</label>
           <textarea placeholder="Brief description..." className={`${inputClass} h-20`} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
           <div className="flex gap-2">
-            <button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold py-2 rounded-xl flex items-center justify-center gap-2">
-              <Save className="w-4 h-4" /> {editingId ? "Update" : "Save"} Method
+            <button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm">
+              <Save className="w-4 h-4" /> {editingId ? "Update" : "Save"}
             </button>
-            <button type="button" onClick={() => {setIsAdding(false); setEditingId(null);}} className="px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors">
+            <button type="button" onClick={() => {setIsAdding(false); setEditingId(null);}} className="px-4 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm">
               Cancel
             </button>
           </div>
         </form>
       )}
 
-      <div className="glass rounded-2xl overflow-hidden overflow-x-auto">
+      {/* Mobile card view */}
+      <div className="md:hidden space-y-3">
+        {methodsLoading ? <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div> : 
+          methods?.length === 0 ? (
+            <div className="glass rounded-xl p-8 text-center text-sm text-muted-foreground">No shipping methods. Click "Add Method" to create one.</div>
+          ) : methods?.map((m: any) => (
+            <div key={m.id} className="glass rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0"><Truck className="w-4 h-4 text-primary" /></div>
+                  <div>
+                    <p className="font-bold text-sm">{m.carrier}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.name}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => startEdit(m)} className="p-1.5 hover:text-primary transition-colors"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDelete(m.id)} className="p-1.5 hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{m.estimated_days}</span>
+                <div className="text-right">
+                  <span className="font-bold">${Number(m.price).toFixed(2)}</span>
+                  {m.min_order_amount > 0 && <p className="text-[10px] text-green-400">Free over ${Number(m.min_order_amount).toFixed(0)}</p>}
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden md:block glass rounded-2xl overflow-hidden overflow-x-auto">
         {methodsLoading ? <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div> : (
           <table className="w-full text-sm min-w-[600px]">
             <thead>
@@ -111,11 +144,7 @@ export default function AdminShipping() {
             </thead>
             <tbody>
               {methods?.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                    No shipping methods found. click "Add Method" to create one.
-                  </td>
-                </tr>
+                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No shipping methods found.</td></tr>
               ) : (
                 methods?.map((m: any) => (
                 <tr key={m.id} className="border-b border-border/50 hover:bg-secondary/30">
