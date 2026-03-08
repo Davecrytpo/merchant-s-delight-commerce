@@ -46,6 +46,9 @@ export default function Checkout() {
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [usePoints, setUsePoints] = useState(false);
   const [deliveryType, setDeliveryType] = useState<"domestic" | "international" | null>(null);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
+  const [applyingCode, setApplyingCode] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: profile?.full_name?.split(" ")[0] || "",
@@ -127,8 +130,49 @@ export default function Checkout() {
     return Math.min(maxDiscount, totalPrice);
   }, [usePoints, profile?.reward_points, totalPrice]);
 
-  const tax = Math.max(0, (totalPrice - pointsDiscount)) * 0.08;
-  const total = Math.max(0, totalPrice - pointsDiscount + shippingCost + tax);
+  const discountAmount = useMemo(() => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.type === 'percentage') {
+      return (totalPrice * appliedDiscount.value) / 100;
+    }
+    return Math.min(appliedDiscount.value, totalPrice);
+  }, [appliedDiscount, totalPrice]);
+
+  const tax = Math.max(0, (totalPrice - pointsDiscount - discountAmount)) * 0.08;
+  const total = Math.max(0, totalPrice - pointsDiscount - discountAmount + shippingCost + tax);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setApplyingCode(true);
+    try {
+      const { data, error } = await supabase
+        .from("discount_codes")
+        .select("*")
+        .eq("code", discountCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+      if (error || !data) {
+        toast.error("Invalid or expired discount code");
+        setApplyingCode(false);
+        return;
+      }
+      if (data.max_uses && data.current_uses >= data.max_uses) {
+        toast.error("This code has reached its maximum uses");
+        setApplyingCode(false);
+        return;
+      }
+      if (data.min_order_amount && totalPrice < Number(data.min_order_amount)) {
+        toast.error(`Minimum order of $${Number(data.min_order_amount).toFixed(2)} required`);
+        setApplyingCode(false);
+        return;
+      }
+      setAppliedDiscount({ code: data.code, type: data.discount_type, value: Number(data.discount_value) });
+      toast.success(`Discount "${data.code}" applied!`);
+    } catch {
+      toast.error("Failed to validate code");
+    }
+    setApplyingCode(false);
+  };
 
   const update = (key: string, value: string) => setFormData((prev) => ({ ...prev, [key]: value }));
 
