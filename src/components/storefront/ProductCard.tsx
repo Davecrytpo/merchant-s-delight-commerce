@@ -84,7 +84,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             }}
           />
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1">
@@ -101,14 +101,14 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             <button
               onClick={handleWishlist}
               className={`p-2.5 rounded-full backdrop-blur-sm transition-all ${
-                wishlisted ? "bg-primary text-primary-foreground" : "bg-card/80 hover:bg-card text-foreground shadow-sm"
+                wishlisted ? "bg-primary text-primary-foreground" : "bg-white/10 hover:bg-white/20 text-foreground"
               }`}
             >
               <Heart className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} />
             </button>
             <button
               onClick={handleQuickAdd}
-              className="p-2.5 rounded-full bg-card/80 hover:bg-primary hover:text-primary-foreground backdrop-blur-sm transition-all text-foreground shadow-sm"
+              className="p-2.5 rounded-full bg-white/10 hover:bg-primary hover:text-primary-foreground backdrop-blur-sm transition-all text-foreground"
             >
               <ShoppingBag className="w-4 h-4" />
             </button>

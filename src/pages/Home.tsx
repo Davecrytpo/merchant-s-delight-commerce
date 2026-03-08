@@ -70,7 +70,7 @@ export default function Home() {
           {features.map((f, i) => (
             <Link key={i} to={f.link} className="block relative z-30 group">
               <motion.div
-                className="flex items-center gap-4 p-4 rounded-xl glass h-full hover:bg-card transition-all duration-300 hover:border-primary/50 hover:shadow-lg"
+                className="flex items-center gap-4 p-4 rounded-xl glass h-full hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-primary/50"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
@@ -132,9 +132,9 @@ export default function Home() {
                         target.src = IMAGE_PLACEHOLDER;
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
                     <div className="absolute bottom-4 left-4">
-                      <h3 className="font-display text-xl font-bold text-white">{cat.name}</h3>
+                      <h3 className="font-display text-xl font-bold">{cat.name}</h3>
                     </div>
                   </Link>
                 </motion.div>
