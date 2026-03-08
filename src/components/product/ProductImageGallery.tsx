@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, MouseEvent, TouchEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchIcon, ZoomIn, ZoomOut } from "lucide-react";
+import { IMAGE_PLACEHOLDER, getSafeImageSrc } from "@/lib/imageFallback";
 
 interface Props {
   images: string[];
@@ -63,15 +64,21 @@ export default function ProductImageGallery({ images, name }: Props) {
             className="w-full h-full"
           >
             <img
-              src={safeImages[selectedImage] || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80"}
+              src={getSafeImageSrc(safeImages[selectedImage])}
               alt={name}
               className="w-full h-full object-cover transition-transform duration-200 ease-out"
               style={{
                 transform: zoom ? "scale(2.5)" : "scale(1)",
                 transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
               }}
-              onError={() => {
-                if (selectedImage < safeImages.length - 1) setSelectedImage(selectedImage + 1);
+              onError={(e) => {
+                if (selectedImage < safeImages.length - 1) {
+                  setSelectedImage(selectedImage + 1);
+                  return;
+                }
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = IMAGE_PLACEHOLDER;
               }}
             />
           </motion.div>
@@ -107,12 +114,13 @@ export default function ProductImageGallery({ images, name }: Props) {
             }`}
           >
             <img
-              src={img}
+              src={getSafeImageSrc(img)}
               alt=""
               className="w-full h-full object-cover"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80";
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = IMAGE_PLACEHOLDER;
               }}
             />
           </button>
@@ -121,3 +129,4 @@ export default function ProductImageGallery({ images, name }: Props) {
     </div>
   );
 }
+
