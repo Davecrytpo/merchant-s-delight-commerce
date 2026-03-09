@@ -458,6 +458,60 @@ export type Database = {
         }
         Relationships: []
       }
+      return_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          estimated_processing_days: number | null
+          id: string
+          items: Json
+          order_id: string
+          order_number: string
+          reason: string
+          reason_detail: string | null
+          resolution: string
+          return_request_id: string
+          shipping_address: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          estimated_processing_days?: number | null
+          id?: string
+          items?: Json
+          order_id: string
+          order_number: string
+          reason: string
+          reason_detail?: string | null
+          resolution?: string
+          return_request_id: string
+          shipping_address?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          estimated_processing_days?: number | null
+          id?: string
+          items?: Json
+          order_id?: string
+          order_number?: string
+          reason?: string
+          reason_detail?: string | null
+          resolution?: string
+          return_request_id?: string
+          shipping_address?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           comment: string | null

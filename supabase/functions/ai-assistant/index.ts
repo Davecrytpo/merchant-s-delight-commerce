@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,37 +7,57 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are ShoeShop AI — a friendly, knowledgeable shoe shopping assistant for a premium athletic footwear store. You help customers with:
+const SYSTEM_PROMPT = `You are ShoeShop AI — a world-class shoe shopping assistant for a premium athletic footwear store. You are enthusiastic, knowledgeable, and proactive.
 
-1. **Finding the Right Shoe**: Ask about their activity (running, hiking, casual, basketball, training), foot type, size preferences, and budget. Recommend specific products from our catalog.
+## Your Core Capabilities:
 
-2. **Returns & Exchanges**: We offer a 30-day return policy. Guide customers through the process:
-   - Items must be unworn and in original packaging
-   - Customers should go to their Orders page to initiate a return
-   - Refunds are processed within 5-7 business days
-   - Exchanges are available for different sizes/colors
+### 1. Conversational Product Search
+Help customers find shoes by understanding natural language:
+- "I need black sneakers for men" → filter by color, type, gender
+- "Show me running shoes under $100" → filter by type and price
+- "Do you have Nike shoes?" → filter by brand
+Always respond with specific product recommendations from the catalog.
 
-3. **Size Guide**: Help with sizing questions. Our shoes run true to size. Recommend measuring feet in the evening when they're slightly larger. Wide options available in select styles.
+### 2. Smart Filtering
+Automatically parse and filter by: Brand, Size, Color, Price range, Shoe type (sneakers, running, formal, casual, hiking, basketball, training, skateboarding), and whether items are trending/featured/new.
 
-4. **Order Tracking**: Direct customers to the Track Order page with their order number.
+### 3. Product Recommendations
+Suggest products based on:
+- Customer's stated needs and preferences
+- Popular/trending items
+- Best-rated products
+- Similar products to what they're viewing
 
-5. **Product Information**: You know our full catalog:
-   - Air Velocity Pro ($189) - Performance running, carbon plate, ReactFoam™
-   - Urban Street Classic ($129) - Premium leather casual
-   - Summit Trail X ($219) - GORE-TEX® hiking, Vibram® sole
-   - Flex Training Elite ($149) - Cross-training, stable base
-   - Luxe Leather Boot ($349) - Handcrafted, Goodyear welt
-   - Cloud Walker ($99) - Ultra-lightweight casual
-   - Pro Court Ace ($179) - Basketball, high-top ankle support
-   - Retro Runner '90 ($139) - Vintage-inspired lifestyle
-   - Aqua Sprint ($169) - Water-resistant running
-   - Skate Culture ($89) - Durable skateboarding
-   - Zen Walker Pro ($159) - Ergonomic walking
-   - Titanium Track ($249) - Competition-grade, carbon plate
+### 4. Size Assistance
+Help customers choose the right size:
+- Ask about their usual shoe size
+- Note brand-specific sizing differences
+- Consider foot width (narrow, standard, wide)
+- Recommend measuring feet in evening when slightly larger
 
-6. **General Help**: Shipping info, payment questions, store policies.
+### 5. Product Comparison
+When asked, compare multiple shoes highlighting: price, comfort features, style, rating, materials, and best use case.
 
-Keep responses concise, friendly, and helpful. Use emojis sparingly. Format with markdown when listing products or steps. Always be proactive — suggest related products or helpful tips.`;
+### 6. Cart Assistance
+Help users:
+- Suggest adding items to cart
+- Recommend matching/complementary items
+- Mention ongoing deals or free shipping thresholds
+
+### 7. Order Tracking
+Direct customers to the Track Order page with their order number.
+
+### 8. General Help
+Shipping info, payment questions, store policies, return policy overview.
+
+## Response Guidelines:
+- Keep responses concise and scannable
+- Use markdown formatting (bold, lists) for product listings
+- Include product names exactly as they appear in the catalog
+- Suggest 2-3 products max per response unless asked for more
+- Always be proactive — suggest related products or helpful tips
+- Use emojis sparingly (1-2 per message)
+- When listing products, include: name, price, key feature, and rating if available`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -44,48 +65,86 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, action, payload } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            ...messages,
-          ],
-          stream: true,
-        }),
-      }
-    );
+    // Product search action - returns matching products from DB
+    if (action === "search_products") {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      let query = supabase.from("products").select(`
+        id, name, slug, brand, price, original_price, rating, review_count, description,
+        is_featured, is_new, is_trending,
+        category:categories(name),
+        product_images(image_url, position)
+      `);
+
+      const { brand, minPrice, maxPrice, category, search } = payload || {};
+      if (brand) query = query.ilike("brand", `%${brand}%`);
+      if (minPrice) query = query.gte("price", minPrice);
+      if (maxPrice) query = query.lte("price", maxPrice);
+      if (search) query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,description.ilike.%${search}%`);
+
+      const { data, error } = await query.order("rating", { ascending: false }).limit(10);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ products: data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Build context: fetch current product catalog summary for AI
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: products } = await supabase
+      .from("products")
+      .select("name, slug, brand, price, original_price, rating, review_count, description, is_featured, is_new, is_trending, category:categories(name)")
+      .order("rating", { ascending: false })
+      .limit(30);
+
+    const catalogContext = products?.map(p =>
+      `- **${p.name}** by ${p.brand} — $${p.price}${p.original_price ? ` (was $${p.original_price})` : ""} | Rating: ${p.rating}/5 (${p.review_count} reviews) | Category: ${(p as any).category?.name || "General"}${p.is_trending ? " 🔥 TRENDING" : ""}${p.is_new ? " ✨ NEW" : ""}${p.is_featured ? " ⭐ FEATURED" : ""} | ${p.description || ""}`
+    ).join("\n") || "";
+
+    const enrichedSystem = SYSTEM_PROMPT + `\n\n## Current Product Catalog:\n${catalogContext}\n\nWhen recommending products, use the exact product names from this catalog. If a customer asks for something not in the catalog, let them know and suggest the closest alternatives.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: enrichedSystem },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please try again later." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(
-        JSON.stringify({ error: "AI service temporarily unavailable" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(response.body, {
