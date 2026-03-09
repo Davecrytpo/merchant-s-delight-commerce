@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Heart, Search, Menu, X, User, LogOut } from "lucide-react";
+import { ShoppingBag, Heart, Search, Menu, X, User, LogOut, RotateCcw } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
@@ -201,6 +201,10 @@ export default function Header() {
                   <Link to="/orders" className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
                     <ShoppingBag className="w-5 h-5" />
                     <span className="font-medium">Orders</span>
+                  </Link>
+                  <Link to="/returns" className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
+                    <RotateCcw className="w-5 h-5" />
+                    <span className="font-medium">Returns</span>
                   </Link>
                   <Link to="/wishlist" className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
                     <Heart className="w-5 h-5" />

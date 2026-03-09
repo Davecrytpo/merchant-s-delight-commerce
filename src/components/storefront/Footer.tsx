@@ -70,6 +70,7 @@ export default function Footer() {
             <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">FAQ</Link>
             <Link to="/size-guide" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Size Guide</Link>
             <Link to="/track-order" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Track Order</Link>
+            <Link to="/returns" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Returns & Exchanges</Link>
             <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Contact Us</Link>
           </div>
         </div>

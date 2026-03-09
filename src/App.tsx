@@ -21,6 +21,7 @@ import BlogPost from "@/pages/BlogPost";
 import FAQ from "@/pages/FAQ";
 import SizeGuide from "@/pages/SizeGuide";
 import TrackOrder from "@/pages/TrackOrder";
+import Returns from "@/pages/Returns";
 import Account from "@/pages/Account";
 import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
@@ -57,6 +58,7 @@ export default function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/size-guide" element={<SizeGuide />} />
               <Route path="/track-order" element={<TrackOrder />} />
+              <Route path="/returns" element={<Returns />} />
               <Route path="/account" element={<Account />} />
               <Route path="/orders" element={<Orders />} />
             </Route>
