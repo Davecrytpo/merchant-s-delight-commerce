@@ -53,14 +53,30 @@ serve(async (req) => {
 
     // Direct database actions (called from client when AI instructs)
     if (action === "lookup_order") {
-      const { order_number, user_id } = payload;
+      const { order_number, email, user_id } = payload;
       let query = supabase.from("orders").select("*").eq("order_number", order_number);
-      if (user_id) query = query.eq("user_id", user_id);
+      
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
       
       if (!data) {
         return new Response(JSON.stringify({ found: false }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Security: If user_id is provided, it must match. 
+      // If not, or if it doesn't match, we MUST verify the email.
+      const orderEmail = (data.shipping_address as any)?.email;
+      const isOwner = user_id && data.user_id === user_id;
+      const emailMatches = email && orderEmail && email.toLowerCase() === orderEmail.toLowerCase();
+
+      if (!isOwner && !emailMatches) {
+        return new Response(JSON.stringify({ 
+          found: true, 
+          needs_verification: true,
+          message: "Please provide the email address used for this order to verify your identity."
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

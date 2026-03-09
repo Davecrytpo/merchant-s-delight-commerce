@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, Coins, Award, Globe } from "lucide-react";
+import { User, Package, Heart, Settings, Mail, Lock, Eye, EyeOff, LogOut, Save, ShoppingBag, MapPin, Clock, ChevronRight, Coins, Award, Globe, RotateCcw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useOrders } from "@/hooks/useOrders";
+import { useReturns } from "@/hooks/useReturns";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },
@@ -29,10 +30,11 @@ export default function Account() {
   const { user, profile, loading, signIn, signUp, signOut, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { data: orders } = useOrders(user?.id);
+  const { data: returns } = useReturns(user?.id);
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [activeSection, setActiveSection] = useState<"overview" | "profile" | "addresses" | "rewards">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "profile" | "addresses" | "rewards" | "returns">("overview");
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [profileForm, setProfileForm] = useState({
     full_name: "", phone: "", address_line1: "", city: "", state: "", zip_code: "", country: "US",
@@ -84,6 +86,7 @@ export default function Account() {
   }
 
   const totalOrders = orders?.length || 0;
+  const totalReturns = returns?.length || 0;
   const totalSpent = orders?.reduce((acc: number, o: any) => acc + Number(o.total), 0) || 0;
   const pendingOrders = orders?.filter((o: any) => o.status === "pending" || o.status === "processing").length || 0;
   const rewardPoints = profile?.reward_points || 0;
@@ -115,17 +118,17 @@ export default function Account() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
           {[
             { icon: ShoppingBag, label: "Total Orders", value: totalOrders, color: "text-primary" },
+            { icon: RotateCcw, label: "Returns", value: totalReturns, color: "text-orange-400", link: "/returns" },
             { icon: Coins, label: "Reward Points", value: rewardPoints, color: "text-yellow-400", sub: pointsValue > 0 ? `= $${pointsValue} value` : undefined },
-            { icon: Clock, label: "Active Orders", value: pendingOrders, color: "text-blue-400" },
             { icon: Heart, label: "Wishlist", value: "View", color: "text-pink-400", link: "/wishlist" },
           ].map((s: any, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass rounded-2xl p-4 md:p-5">
               {s.link ? (
-                <Link to={s.link} className="block">
+                <div onClick={() => s.link && navigate(s.link)} className="cursor-pointer block">
                   <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
                   <p className="text-xl md:text-2xl font-bold">{s.value}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
-                </Link>
+                </div>
               ) : (
                 <>
                   <s.icon className={`w-5 h-5 ${s.color} mb-2`} />
@@ -142,6 +145,7 @@ export default function Account() {
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {[
             { key: "overview" as const, label: "Overview", icon: Package },
+            { key: "returns" as const, label: "Returns", icon: RotateCcw },
             { key: "profile" as const, label: "Profile", icon: User },
             { key: "addresses" as const, label: "Address", icon: MapPin },
             { key: "rewards" as const, label: "Rewards", icon: Award },
@@ -164,9 +168,9 @@ export default function Account() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { icon: Package, label: "My Orders", to: "/orders" },
+                { icon: RotateCcw, label: "Returns", to: "/returns" },
                 { icon: Heart, label: "Wishlist", to: "/wishlist" },
                 { icon: Settings, label: "Track Order", to: "/track-order" },
-                { icon: Mail, label: "Contact Us", to: "/contact" },
               ].map((item) => (
                 <Link key={item.label} to={item.to} className="glass rounded-xl p-4 text-center glass-hover group">
                   <item.icon className="w-5 h-5 mx-auto mb-2 text-primary group-hover:scale-110 transition-transform" />
@@ -198,6 +202,62 @@ export default function Account() {
                           "bg-primary/10 text-primary"
                         }`}>{o.status}</span>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {activeSection === "returns" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="glass rounded-2xl p-6 md:p-8 text-center bg-primary/5 border-primary/20">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                <RotateCcw className="w-6 h-6 text-primary" />
+              </div>
+              <h2 className="font-display text-xl font-bold mb-2">Need to return something?</h2>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Our AI Return Assistant can help you verify eligibility, process your return, and generate a return label in minutes.
+              </p>
+              <Link to="/returns" className="inline-flex items-center gap-2 gold-gradient text-background px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">
+                Start a Return <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="glass rounded-2xl p-6">
+              <h2 className="font-display text-xl font-bold mb-4">My Returns</h2>
+              {!returns?.length ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                  <p>No return requests found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {returns.map((r: any) => (
+                    <div key={r.id} className="p-4 rounded-xl bg-secondary/30 border border-white/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-sm flex items-center gap-2">
+                            {r.return_request_id}
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${
+                              r.status === "approved" ? "bg-green-500/10 text-green-400" :
+                              r.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                              "bg-yellow-500/10 text-yellow-400"
+                            }`}>{r.status}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">Order #{r.order_number} • {new Date(r.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold capitalize">{r.resolution}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{r.reason?.replace(/_/g, " ")}</p>
+                        </div>
+                      </div>
+                      {r.admin_notes && (
+                        <div className="p-3 bg-secondary/50 rounded-lg text-xs text-muted-foreground italic border-l-2 border-primary">
+                          <span className="font-bold not-italic text-primary">Admin Note:</span> {r.admin_notes}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
