@@ -147,7 +147,7 @@ class QueryBuilder {
   }
 }
 
-export const supabase = {
+export const apiClient = {
   auth: {
     async signUp({ email, password, options }: any) {
       const result = await apiFetch("/auth/signup", {

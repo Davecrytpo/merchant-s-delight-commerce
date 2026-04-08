@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export const useAdmin = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -7,14 +7,14 @@ export const useAdmin = () => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await apiClient.auth.getUser();
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase.rpc("has_role", {
+      const { data } = await apiClient.rpc("has_role", {
         _user_id: user.id,
         _role: "admin",
       } as any);
@@ -28,3 +28,4 @@ export const useAdmin = () => {
 
   return { isAdmin, loading };
 };
+

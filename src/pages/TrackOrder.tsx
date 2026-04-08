@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, Package, Truck, CheckCircle, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useAuth } from "@/context/AuthContext";
 
 const STATUS_STEPS = [
@@ -27,7 +27,7 @@ export default function TrackOrder() {
     if (e) e.preventDefault();
     if (!orderId.trim()) { toast.error("Please enter an order number"); return; }
     setLoading(true);
-    let query = supabase.from("orders").select("*").eq("order_number", orderId.trim());
+    let query = apiClient.from("orders").select("*").eq("order_number", orderId.trim());
     if (user) query = query.eq("user_id", user.id);
     const { data, error } = await query.maybeSingle();
     if (error || !data) { toast.error("Order not found."); setOrder(null); }
@@ -100,3 +100,4 @@ export default function TrackOrder() {
     </div>
   );
 }
+

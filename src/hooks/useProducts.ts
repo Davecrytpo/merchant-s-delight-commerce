@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 
 const DEFAULT_US_SIZES = ["6", "7", "8", "9", "10", "11", "12"];
@@ -38,14 +38,14 @@ const attachProductRelations = async (products: any[]) => {
   );
 
   const [imagesRes, variantsRes, categoriesRes] = await Promise.all([
-    supabase
+    apiClient
       .from("product_images")
       .select("*")
       .in("product_id", productIds)
       .order("position", { ascending: true }),
-    supabase.from("product_variants").select("*").in("product_id", productIds),
+    apiClient.from("product_variants").select("*").in("product_id", productIds),
     categoryIds.length
-      ? supabase.from("categories").select("*").in("id", categoryIds as string[])
+      ? apiClient.from("categories").select("*").in("id", categoryIds as string[])
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -138,7 +138,7 @@ export const useProducts = (options: {
   return useQuery({
     queryKey: ["products", options.category ?? null, options.featured ?? null, options.limit ?? null, options.sort ?? null],
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from("products")
         .select("*");
 
@@ -165,7 +165,7 @@ export const useProduct = (idOrSlug: string) => {
     queryFn: async () => {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
       
-      let query = supabase
+      let query = apiClient
         .from("products")
         .select("*");
 
@@ -187,7 +187,7 @@ export const useCategories = () => {
   return useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*");
+      const { data, error } = await apiClient.from("categories").select("*");
       if (error) throw error;
       return data;
     },
@@ -201,7 +201,7 @@ export const useAdminProductMutations = () => {
   const createProduct = useMutation({
     mutationFn: async ({ product, images, variants }: any) => {
       // 1. Create product
-      const { data: newProduct, error: productError } = await supabase
+      const { data: newProduct, error: productError } = await apiClient
         .from("products")
         .insert(product)
         .select()
@@ -216,7 +216,7 @@ export const useAdminProductMutations = () => {
           image_url: url,
           position: index
         }));
-        const { error: imageError } = await supabase.from("product_images").insert(imageData);
+        const { error: imageError } = await apiClient.from("product_images").insert(imageData);
         if (imageError) throw imageError;
       }
 
@@ -226,7 +226,7 @@ export const useAdminProductMutations = () => {
           product_id: newProduct.id,
           ...v
         }));
-        const { error: variantError } = await supabase.from("product_variants").insert(variantData);
+        const { error: variantError } = await apiClient.from("product_variants").insert(variantData);
         if (variantError) throw variantError;
       }
 
@@ -241,7 +241,7 @@ export const useAdminProductMutations = () => {
   const updateProduct = useMutation({
     mutationFn: async ({ id, product, images, variants }: any) => {
       // 1. Update product basic info
-      const { data: updatedProduct, error: productError } = await supabase
+      const { data: updatedProduct, error: productError } = await apiClient
         .from("products")
         .update(product)
         .eq("id", id)
@@ -252,21 +252,21 @@ export const useAdminProductMutations = () => {
 
       // 2. Update images (simple approach: delete and re-add)
       if (images) {
-        await supabase.from("product_images").delete().eq("product_id", id);
+        await apiClient.from("product_images").delete().eq("product_id", id);
         if (images.length > 0) {
           const imageData = images.map((url: string, index: number) => ({
             product_id: id,
             image_url: url,
             position: index
           }));
-          const { error: imageError } = await supabase.from("product_images").insert(imageData);
+          const { error: imageError } = await apiClient.from("product_images").insert(imageData);
           if (imageError) throw imageError;
         }
       }
 
       // 3. Update variants (simple approach: delete and re-add)
       if (variants) {
-        await supabase.from("product_variants").delete().eq("product_id", id);
+        await apiClient.from("product_variants").delete().eq("product_id", id);
         if (variants.length > 0) {
           const variantData = variants.map((v: any) => ({
             product_id: id,
@@ -276,7 +276,7 @@ export const useAdminProductMutations = () => {
             stock: v.stock,
             price: v.price
           }));
-          const { error: variantError } = await supabase.from("product_variants").insert(variantData);
+          const { error: variantError } = await apiClient.from("product_variants").insert(variantData);
           if (variantError) throw variantError;
         }
       }
@@ -291,7 +291,7 @@ export const useAdminProductMutations = () => {
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
+      const { error } = await apiClient.from("products").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -302,3 +302,4 @@ export const useAdminProductMutations = () => {
 
   return { createProduct, updateProduct, deleteProduct };
 };
+

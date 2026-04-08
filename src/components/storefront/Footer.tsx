@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Instagram, Twitter, Facebook, Youtube, Mail, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export default function Footer() {
       return;
     }
     setSubscribing(true);
-    const { error } = await supabase
+    const { error } = await apiClient
       .from("newsletter_subscribers")
       .insert({ email: email.trim().toLowerCase() });
 
@@ -120,3 +120,4 @@ export default function Footer() {
     </footer>
   );
 }
+

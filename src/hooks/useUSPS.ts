@@ -17,7 +17,7 @@ export const useUSPSTracking = (trackingNumber: string | null) => {
     queryFn: async (): Promise<USPSTracking> => {
       if (!trackingNumber) throw new Error("No tracking number provided");
 
-      // Note: Real integration would call a Supabase Edge Function that proxies to USPS API
+      // Note: Real integration would call a backend endpoint that proxies to USPS API
       // to keep credentials secure.
       
       // MOCK implementation for now
@@ -37,3 +37,4 @@ export const useUSPSTracking = (trackingNumber: string | null) => {
     enabled: !!trackingNumber && trackingNumber.startsWith("9"), // USPS numbers often start with 9
   });
 };
+

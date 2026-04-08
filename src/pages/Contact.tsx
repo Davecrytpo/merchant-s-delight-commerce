@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -12,7 +12,7 @@ export default function Contact() {
     e.preventDefault();
     if (!form.name || !form.email || !form.subject || !form.message) { toast.error("Please fill in all fields"); return; }
     setSubmitting(true);
-    const { error } = await supabase.from("contact_messages").insert({ name: form.name.trim(), email: form.email.trim(), subject: form.subject.trim(), message: form.message.trim() });
+    const { error } = await apiClient.from("contact_messages").insert({ name: form.name.trim(), email: form.email.trim(), subject: form.subject.trim(), message: form.message.trim() });
     if (error) toast.error("Failed to send message.");
     else { toast.success("Message sent! We'll get back to you within 24 hours."); setForm({ name: "", email: "", subject: "", message: "" }); }
     setSubmitting(false);
@@ -58,3 +58,4 @@ export default function Contact() {
     </div>
   );
 }
+

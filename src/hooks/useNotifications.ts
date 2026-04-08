@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useEffect } from "react";
 
 export const useAdminNotifications = () => {
@@ -8,7 +8,7 @@ export const useAdminNotifications = () => {
   const query = useQuery({
     queryKey: ["admin-notifications"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("admin_notifications")
         .select("*")
         .order("created_at", { ascending: false })
@@ -21,7 +21,7 @@ export const useAdminNotifications = () => {
 
   // Realtime subscription
   useEffect(() => {
-    const channel = supabase
+    const channel = apiClient
       .channel("admin-notifications-realtime")
       .on(
         "postgres_changes",
@@ -32,12 +32,12 @@ export const useAdminNotifications = () => {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { apiClient.removeChannel(channel); };
   }, [queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from("admin_notifications")
         .update({ is_read: true } as any)
         .eq("id", id);
@@ -50,7 +50,7 @@ export const useAdminNotifications = () => {
 
   const markAllRead = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from("admin_notifications")
         .update({ is_read: true } as any)
         .eq("is_read", false);
@@ -65,3 +65,4 @@ export const useAdminNotifications = () => {
 
   return { ...query, unreadCount, markAsRead, markAllRead };
 };
+

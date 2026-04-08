@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export interface ShippingMethod {
   id: string;
@@ -18,7 +18,7 @@ export const useShippingMethods = (countryCode: string = 'US') => {
   return useQuery({
     queryKey: ["shipping-methods", countryCode],
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from("shipping_methods")
         .select("*")
         .eq("is_active", true);
@@ -38,3 +38,4 @@ export const useShippingMethods = (countryCode: string = 'US') => {
     },
   });
 };
+

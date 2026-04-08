@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 
@@ -7,7 +7,7 @@ export const useReviews = (productId: string) => {
   return useQuery({
     queryKey: ["reviews", productId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("reviews")
         .select(`
           *,
@@ -31,7 +31,7 @@ export const useSubmitReview = () => {
     mutationFn: async ({ productId, rating, title, comment }: { productId: string; rating: number; title?: string; comment: string }) => {
       if (!user) throw new Error("You must be logged in to leave a review");
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("reviews")
         .insert({
           product_id: productId,
@@ -61,3 +61,4 @@ export const useSubmitReview = () => {
     },
   });
 };
+

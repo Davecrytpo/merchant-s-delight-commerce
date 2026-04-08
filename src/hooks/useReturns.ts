@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export function useReturns(userId: string | undefined) {
   return useQuery({
     queryKey: ["returns", userId],
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("return_requests")
         .select("*")
         .eq("user_id", userId)
@@ -18,3 +18,4 @@ export function useReturns(userId: string | undefined) {
     enabled: !!userId,
   });
 }
+

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star, ThumbsUp, User, Loader2, MessageSquare } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -34,7 +34,7 @@ export default function ProductReviews({ productId, productName }: Props) {
   const { data: reviews, isLoading } = useQuery({
     queryKey: ["reviews", productId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("product_reviews" as any)
         .select("*, profiles(full_name)")
         .eq("product_id", productId)
@@ -47,7 +47,7 @@ export default function ProductReviews({ productId, productName }: Props) {
   const createReview = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Must be signed in");
-      const { error } = await supabase.from("product_reviews" as any).insert({
+      const { error } = await apiClient.from("product_reviews" as any).insert({
         product_id: productId,
         user_id: user.id,
         rating,
@@ -245,3 +245,4 @@ export default function ProductReviews({ productId, productName }: Props) {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Truck, Plus, Edit, Trash2, Loader2, Save, X } from "lucide-react";
 import { useShippingMethods } from "@/hooks/useShipping";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -19,11 +19,11 @@ export default function AdminShipping() {
     e.preventDefault();
     try {
       if (editingId) {
-        const { error } = await (supabase.from as any)("shipping_methods").update(formData).eq("id", editingId);
+        const { error } = await (apiClient.from as any)("shipping_methods").update(formData).eq("id", editingId);
         if (error) throw error;
         toast.success("Shipping method updated");
       } else {
-        const { error } = await (supabase.from as any)("shipping_methods").insert(formData);
+        const { error } = await (apiClient.from as any)("shipping_methods").insert(formData);
         if (error) throw error;
         toast.success("Shipping method created");
       }
@@ -38,7 +38,7 @@ export default function AdminShipping() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this shipping method?")) return;
-    const { error } = await (supabase.from as any)("shipping_methods").delete().eq("id", id);
+    const { error } = await (apiClient.from as any)("shipping_methods").delete().eq("id", id);
     if (error) toast.error("Failed to delete");
     else {
       toast.success("Deleted");
@@ -175,3 +175,4 @@ export default function AdminShipping() {
     </div>
   );
 }
+

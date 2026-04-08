@@ -5,7 +5,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useAuth } from "@/context/AuthContext";
 import { Link, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -96,7 +96,7 @@ export default function AIChatWidget() {
     let assistantText = "";
 
     try {
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+      const { data, error } = await apiClient.functions.invoke("ai-assistant", {
         body: { messages: newHistory },
       });
       if (error) throw new Error(error.message || "AI service unavailable");
@@ -289,3 +289,4 @@ export default function AIChatWidget() {
     </div>
   );
 }
+

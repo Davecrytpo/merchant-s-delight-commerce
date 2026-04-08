@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, CreditCard, Lock, Truck, MapPin, Loader2, Coins, ChevronRight, Gift, ShieldCheck, Globe, Flag, Tag, X, Star, CreditCard as GiftCardIcon } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useShippingMethods, type ShippingMethod } from "@/hooks/useShipping";
 
 const STEPS = ["Shipping", "Carrier", "Payment"];
@@ -150,7 +150,7 @@ export default function Checkout() {
     if (!giftCardCode.trim()) return;
     setApplyingGiftCard(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("gift_cards")
         .select("*")
         .eq("code", giftCardCode.trim().toUpperCase())
@@ -181,7 +181,7 @@ export default function Checkout() {
     if (!discountCode.trim()) return;
     setApplyingCode(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("discount_codes")
         .select("*")
         .eq("code", discountCode.trim().toUpperCase())
@@ -273,7 +273,7 @@ export default function Checkout() {
       let data: any = null;
       let lastError: any = null;
       for (const fnName of ["create-checkout", "create-checkout-session"]) {
-        const result = await supabase.functions.invoke(fnName, { body: payload });
+        const result = await apiClient.functions.invoke(fnName, { body: payload });
         if (!result.error) {
           data = result.data;
           lastError = null;
@@ -767,4 +767,5 @@ export default function Checkout() {
     </div>
   );
 }
+
 

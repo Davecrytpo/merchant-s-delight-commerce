@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 
 export const useAdminCustomers = () => {
@@ -8,7 +8,7 @@ export const useAdminCustomers = () => {
   const customers = useQuery({
     queryKey: ["admin-customers"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("profiles")
         .select("*, user_roles(role)")
         .order("created_at", { ascending: false });
@@ -20,7 +20,7 @@ export const useAdminCustomers = () => {
 
   const updatePoints = useMutation({
     mutationFn: async ({ userId, points }: { userId: string, points: number }) => {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from("profiles")
         .update({ reward_points: points })
         .eq("user_id", userId);
@@ -38,3 +38,4 @@ export const useAdminCustomers = () => {
 
   return { customers, updatePoints };
 };
+

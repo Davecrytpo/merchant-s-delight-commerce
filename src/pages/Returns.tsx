@@ -4,7 +4,7 @@ import { Send, Bot, User, Loader2, RotateCcw, Package, CheckCircle2, AlertCircle
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -46,7 +46,7 @@ export default function Returns() {
 
   const handleReturnAction = useCallback(async (actionType: string, payload: any) => {
     try {
-      const { data, error } = await supabase.functions.invoke("return-assistant", {
+      const { data, error } = await apiClient.functions.invoke("return-assistant", {
         body: { action: actionType, payload },
       });
       if (error) throw new Error(error.message || "Action failed");
@@ -122,7 +122,7 @@ export default function Returns() {
     };
 
     try {
-      const { data, error } = await supabase.functions.invoke("return-assistant", {
+      const { data, error } = await apiClient.functions.invoke("return-assistant", {
         body: { messages: newHistory },
       });
       if (error) throw new Error(error.message || "AI service unavailable");
@@ -329,3 +329,4 @@ export default function Returns() {
     </div>
   );
 }
+

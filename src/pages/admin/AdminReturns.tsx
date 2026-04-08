@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Loader2, Search, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ export default function AdminReturns() {
   const { data: returns, isLoading } = useQuery({
     queryKey: ["admin-returns"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from("return_requests")
         .select("*")
         .order("created_at", { ascending: false });
@@ -49,7 +49,7 @@ export default function AdminReturns() {
       user_id?: string;
       resolution?: string;
     }) => {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from("return_requests")
         .update({ status })
         .eq("id", id);
@@ -57,7 +57,7 @@ export default function AdminReturns() {
 
       let notificationError: string | null = null;
       if (previousStatus !== status && return_request_id && order_number && user_id) {
-        const { data, error: notifyError } = await supabase.functions.invoke("return-notification", {
+        const { data, error: notifyError } = await apiClient.functions.invoke("return-notification", {
           body: {
             return_request_id,
             order_number,
@@ -252,3 +252,4 @@ export default function AdminReturns() {
     </div>
   );
 }
+

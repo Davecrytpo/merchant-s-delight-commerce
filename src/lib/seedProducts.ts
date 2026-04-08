@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 type Colorway = { name: string; hex: string };
 
@@ -370,23 +370,23 @@ export async function seedProducts(clearExisting = false) {
 
   if (clearExisting) {
     console.log("Clearing existing data...");
-    await supabase
+    await apiClient
       .from("product_variants")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase
+    await apiClient
       .from("product_images")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase
+    await apiClient
       .from("reviews")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase
+    await apiClient
       .from("products")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
-    await supabase
+    await apiClient
       .from("categories")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
@@ -448,10 +448,10 @@ export async function seedProducts(clearExisting = false) {
   ];
 
   for (const cat of categoriesToSeed) {
-    await supabase.from("categories").upsert(cat, { onConflict: "slug" });
+    await apiClient.from("categories").upsert(cat, { onConflict: "slug" });
   }
 
-  const { data: categories } = await supabase.from("categories").select("*");
+  const { data: categories } = await apiClient.from("categories").select("*");
   if (!categories) {
     console.error("Failed to fetch categories");
     return;
@@ -463,7 +463,7 @@ export async function seedProducts(clearExisting = false) {
     const catId = categoryMap.get(product.category_slug) || null;
     const { images, colorways, sizes, ...productData } = product;
 
-    const { data: p, error } = await supabase
+    const { data: p, error } = await apiClient
       .from("products")
       .upsert(
         {
@@ -481,9 +481,9 @@ export async function seedProducts(clearExisting = false) {
     }
 
     if (p) {
-      await supabase.from("product_images").delete().eq("product_id", p.id);
+      await apiClient.from("product_images").delete().eq("product_id", p.id);
       const dedupImages = Array.from(new Set(images));
-      const { error: imageError } = await supabase.from("product_images").insert(
+      const { error: imageError } = await apiClient.from("product_images").insert(
         dedupImages.map((imageUrl, index) => ({
           product_id: p.id,
           image_url: imageUrl,
@@ -494,7 +494,7 @@ export async function seedProducts(clearExisting = false) {
         console.error(`Error seeding images for ${product.name}:`, imageError);
       }
 
-      await supabase.from("product_variants").delete().eq("product_id", p.id);
+      await apiClient.from("product_variants").delete().eq("product_id", p.id);
       const variantRows = colorways.flatMap((color, colorIndex) =>
         sizes.map((size, sizeIndex) => ({
           product_id: p.id,
@@ -506,7 +506,7 @@ export async function seedProducts(clearExisting = false) {
         }))
       );
 
-      const { error: variantError } = await supabase
+      const { error: variantError } = await apiClient
         .from("product_variants")
         .insert(variantRows);
       if (variantError) {
@@ -517,3 +517,4 @@ export async function seedProducts(clearExisting = false) {
 
   console.log("Seeding complete!");
 }
+
