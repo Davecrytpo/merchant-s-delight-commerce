@@ -21,13 +21,13 @@ interface DisplayMessage {
   productLinks?: { name: string; slug: string; image?: string }[];
 }
 
-const SHOPPING_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
 const SHOPPING_SUGGESTIONS = ["Find me running shoes", "What's trending?", "Shoes under $150"];
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
+  const pathname = location.pathname;
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: "welcome-shop",
@@ -65,20 +65,15 @@ export default function AIChatWidget() {
     [products]
   );
 
-  const getHeaders = useCallback(async () => {
-    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token || publishableKey;
-    return {
-      "Content-Type": "application/json",
-      apikey: publishableKey,
-      Authorization: `Bearer ${token}`,
-    };
-  }, []);
+  const isShoppingRoute =
+    pathname === "/" ||
+    pathname === "/shop" ||
+    pathname === "/cart" ||
+    pathname === "/wishlist" ||
+    pathname.startsWith("/product/");
 
-  // Hide on admin pages and the returns page (returns has its own AI)
-  const hidden = location.pathname.startsWith("/admin") || location.pathname === "/returns";
-  if (hidden) {
+  const hidden = pathname.startsWith("/admin") || pathname === "/returns";
+  if (!isShoppingRoute || hidden) {
     return null;
   }
 
@@ -100,59 +95,12 @@ export default function AIChatWidget() {
 
     let assistantText = "";
 
-    const upsertAssistant = (chunk: string) => {
-      assistantText += chunk;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.type === "bot" && last.id === "streaming") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, text: assistantText } : m));
-        }
-        return [...prev, { id: "streaming", type: "bot", text: assistantText, timestamp: new Date() }];
-      });
-    };
-
     try {
-      const resp = await fetch(SHOPPING_URL, {
-        method: "POST",
-        headers: await getHeaders(),
-        body: JSON.stringify({ messages: newHistory }),
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: { messages: newHistory },
       });
-
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || `AI service unavailable (${resp.status})`);
-      }
-
-      if (!resp.body) throw new Error("No response body");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) upsertAssistant(content);
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
+      if (error) throw new Error(error.message || "AI service unavailable");
+      assistantText = data?.reply || "I couldn't generate a response right now.";
 
       const links = findProductLinks(assistantText);
       setChatHistory((prev) => [...prev, { role: "assistant", content: assistantText }]);
@@ -160,16 +108,17 @@ export default function AIChatWidget() {
       const suggestions = ["Show me more options", "Compare these shoes", "Size guide help"];
 
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === "streaming"
-            ? {
-                ...m,
-                id: Date.now().toString(),
-                productLinks: links.length > 0 ? links : undefined,
-                suggestions,
-              }
-            : m
-        )
+        [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            type: "bot" as const,
+            text: assistantText,
+            timestamp: new Date(),
+            productLinks: links.length > 0 ? links : undefined,
+            suggestions,
+          },
+        ]
       );
     } catch (e: any) {
       console.error("AI chat error:", e);

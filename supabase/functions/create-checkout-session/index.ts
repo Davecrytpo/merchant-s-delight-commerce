@@ -49,7 +49,7 @@ serve(async (req) => {
       },
     })
 
-    return new Response(JSON.stringify({ id: session.id }), {
+    return new Response(JSON.stringify({ id: session.id, url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     })

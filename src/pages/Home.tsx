@@ -229,7 +229,7 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
             {[
               { name: "Alex M.", text: "Best running shoes I've ever owned. The Air Velocity Pro changed my training.", rating: 5 },
-              { name: "Sarah K.", text: "The quality is incredible for the price. I've bought 3 pairs from ShoeShop.", rating: 5 },
+              { name: "Sarah K.", text: "The quality is incredible for the price. I've bought 3 pairs from Merchant's Delight.", rating: 5 },
               { name: "David L.", text: "Fast shipping, great packaging, and the shoes look even better in person.", rating: 5 },
             ].map((review, i) => (
               <motion.div

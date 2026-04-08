@@ -40,7 +40,7 @@ export default function AdminAuth() {
       if (error) {
         toast.error(error.message || "Signup failed");
       } else {
-        toast.success("Account created! Please check your email to verify, then the store owner will assign your admin role.");
+        toast.success("Account created successfully. If this is the first account, it will receive admin access automatically.");
       }
     }
     setSubmitting(false);
@@ -88,7 +88,7 @@ export default function AdminAuth() {
               <input
                 className={inputClass}
                 type="email"
-                placeholder="admin@shoeshop.com"
+                placeholder="admin@merchantsdelight.com"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 required
@@ -144,7 +144,7 @@ export default function AdminAuth() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Admin access requires role assignment by the store owner.
+          The first account created becomes the bootstrap admin for this store.
         </p>
       </motion.div>
     </div>

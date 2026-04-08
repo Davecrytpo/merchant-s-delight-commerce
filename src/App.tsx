@@ -23,6 +23,7 @@ import SizeGuide from "@/pages/SizeGuide";
 import TrackOrder from "@/pages/TrackOrder";
 import Returns from "@/pages/Returns";
 import Account from "@/pages/Account";
+import AccountReturns from "@/pages/AccountReturns";
 import Orders from "@/pages/Orders";
 import NotFound from "@/pages/NotFound";
 
@@ -60,6 +61,7 @@ export default function App() {
               <Route path="/track-order" element={<TrackOrder />} />
               <Route path="/returns" element={<Returns />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/account/returns" element={<AccountReturns />} />
               <Route path="/orders" element={<Orders />} />
             </Route>
 
@@ -86,3 +88,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

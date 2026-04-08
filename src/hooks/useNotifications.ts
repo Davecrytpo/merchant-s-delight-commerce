@@ -16,6 +16,7 @@ export const useAdminNotifications = () => {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 10000,
   });
 
   // Realtime subscription

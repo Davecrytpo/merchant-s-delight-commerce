@@ -63,7 +63,7 @@ export default function Account() {
       if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); setSubmitting(false); return; }
       const { error } = await signUp(form.email, form.password, form.name);
       if (error) toast.error(error.message);
-      else toast.success("Account created! Please check your email to verify.");
+      else toast.success("Account created successfully.");
     }
     setSubmitting(false);
   };
@@ -118,7 +118,7 @@ export default function Account() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
           {[
             { icon: ShoppingBag, label: "Total Orders", value: totalOrders, color: "text-primary" },
-            { icon: RotateCcw, label: "Returns", value: totalReturns, color: "text-orange-400", link: "/returns" },
+            { icon: RotateCcw, label: "Returns", value: totalReturns, color: "text-orange-400", link: "/account/returns" },
             { icon: Coins, label: "Reward Points", value: rewardPoints, color: "text-yellow-400", sub: pointsValue > 0 ? `= $${pointsValue} value` : undefined },
             { icon: Heart, label: "Wishlist", value: "View", color: "text-pink-400", link: "/wishlist" },
           ].map((s: any, i) => (
@@ -168,7 +168,7 @@ export default function Account() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { icon: Package, label: "My Orders", to: "/orders" },
-                { icon: RotateCcw, label: "Returns", to: "/returns" },
+                { icon: RotateCcw, label: "Returns", to: "/account/returns" },
                 { icon: Heart, label: "Wishlist", to: "/wishlist" },
                 { icon: Settings, label: "Track Order", to: "/track-order" },
               ].map((item) => (
@@ -226,7 +226,10 @@ export default function Account() {
             </div>
 
             <div className="glass rounded-2xl p-6">
-              <h2 className="font-display text-xl font-bold mb-4">My Returns</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-xl font-bold">My Returns</h2>
+                <Link to="/account/returns" className="text-xs text-primary hover:underline">View All</Link>
+              </div>
               {!returns?.length ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Package className="w-12 h-12 mx-auto mb-3 opacity-20" />
@@ -360,7 +363,7 @@ export default function Account() {
                       </div>
                       <div>
                         <p className="font-bold mb-1">Use Points at Checkout</p>
-                        <p className="text-sm text-muted-foreground leading-relaxed">When you have 100+ points, a "ShoeShop Rewards" checkbox will appear at checkout. Simply check it to apply your points as a discount. Every 100 points = $10 off your order!</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">When you have 100+ points, a "Merchant's Delight Rewards" checkbox will appear at checkout. Simply check it to apply your points as a discount. Every 100 points = $10 off your order!</p>
                       </div>
                     </div>
 
@@ -430,7 +433,7 @@ export default function Account() {
           <User className="w-8 h-8 text-background" />
         </div>
         <h1 className="font-display text-3xl font-bold">{isLogin ? "Welcome Back" : "Create Account"}</h1>
-        <p className="text-muted-foreground mt-1">{isLogin ? "Sign in to your account" : "Join the ShoeShop family"}</p>
+        <p className="text-muted-foreground mt-1">{isLogin ? "Sign in to your account" : "Join the Merchant's Delight community"}</p>
       </motion.div>
 
       <motion.form onSubmit={handleAuth} className="glass rounded-2xl p-6 space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>

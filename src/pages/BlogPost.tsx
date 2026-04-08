@@ -36,7 +36,7 @@ export default function BlogPost() {
         </div>
         <div className="prose prose-invert max-w-none text-sm md:text-base text-muted-foreground leading-relaxed space-y-4">
           <p>{post.content}</p>
-          <p>At ShoeShop, we believe in transparency and education. Understanding the technology behind your footwear helps you make better purchasing decisions.</p>
+          <p>At Merchant's Delight, we believe in transparency and education. Understanding the technology behind your footwear helps you make better purchasing decisions.</p>
           <p>Stay tuned for more in-depth articles about footwear technology, style guides, and industry trends.</p>
         </div>
       </motion.article>

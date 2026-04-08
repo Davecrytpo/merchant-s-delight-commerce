@@ -10,7 +10,7 @@ const faqs = [
   { q: "Do you offer international shipping?", a: "Yes! We ship to over 15 countries worldwide. International shipping typically takes 7-14 business days." },
   { q: "How can I track my order?", a: "Once your order ships, you'll receive an email with a tracking number. You can also track your order on our Track Order page." },
   { q: "Can I cancel or modify my order?", a: "You can cancel or modify your order within 1 hour of placing it. After that, the order enters processing and cannot be changed." },
-  { q: "Do you have a loyalty program?", a: "Yes! ShoeShop Rewards gives you 1 point for every dollar spent. Earn 100 points and get $10 off your next purchase." },
+  { q: "Do you have a loyalty program?", a: "Yes! Merchant's Delight Rewards gives you 1 point for every dollar spent. Earn 100 points and get $10 off your next purchase." },
 ];
 
 export default function FAQ() {
@@ -20,7 +20,7 @@ export default function FAQ() {
     <div className="container mx-auto px-4 py-10 md:py-16 max-w-3xl">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 md:mb-12">
         <h1 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3">Frequently Asked <span className="gold-text">Questions</span></h1>
-        <p className="text-xs md:text-base text-muted-foreground">Everything you need to know about ShoeShop</p>
+        <p className="text-xs md:text-base text-muted-foreground">Everything you need to know about Merchant's Delight</p>
       </motion.div>
 
       <div className="space-y-2 md:space-y-3">

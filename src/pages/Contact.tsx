@@ -29,7 +29,7 @@ export default function Contact() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-8 md:mb-12">
         {[
-          { icon: Mail, title: "Email", info: "hello@shoeshop.com", sub: "We reply within 24 hours" },
+          { icon: Mail, title: "Email", info: "hello@merchantsdelight.com", sub: "We reply within 24 hours" },
           { icon: Phone, title: "Phone", info: "+1 (555) 123-4567", sub: "Mon-Fri 9am-6pm EST" },
           { icon: MapPin, title: "Address", info: "123 Fashion Ave", sub: "New York, NY 10001" },
         ].map((item, i) => (

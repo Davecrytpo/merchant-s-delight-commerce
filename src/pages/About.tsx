@@ -25,8 +25,8 @@ export default function About() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center text-center px-4">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4">About <span className="gold-text">ShoeShop</span></h1>
-            <p className="text-sm md:text-xl text-muted-foreground max-w-xl mx-auto">Crafting the future of footwear since 2020</p>
+            <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4">About <span className="gold-text">Merchant's Delight</span></h1>
+            <p className="text-sm md:text-xl text-muted-foreground max-w-xl mx-auto">A modern commerce brand for premium footwear since 2020</p>
           </motion.div>
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function About() {
             <span className="text-primary text-xs md:text-sm font-semibold uppercase tracking-wider">Our Story</span>
             <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mt-2 mb-4 md:mb-6">Born From a Passion for Perfect Shoes</h2>
             <div className="space-y-3 md:space-y-4 text-sm md:text-base text-muted-foreground">
-              <p>ShoeShop was founded in 2020 by a group of sneaker enthusiasts and footwear engineers who believed that great shoes shouldn't come with a luxury price tag.</p>
+              <p>Merchant's Delight was founded in 2020 by a group of sneaker enthusiasts and footwear engineers who believed that great shoes should feel premium without inflated pricing.</p>
               <p>We partner directly with skilled artisans and cutting-edge factories to bring you premium footwear at honest prices.</p>
               <p>Today, we serve over 50,000 customers across 15 countries, and we're just getting started.</p>
             </div>

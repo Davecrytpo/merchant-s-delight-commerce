@@ -32,23 +32,58 @@ export default function AdminReturns() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, return_request_id, order_number, user_id }: { id: string; status: string; return_request_id?: string; order_number?: string; user_id?: string }) => {
+    mutationFn: async ({
+      id,
+      status,
+      previousStatus,
+      return_request_id,
+      order_number,
+      user_id,
+      resolution,
+    }: {
+      id: string;
+      status: string;
+      previousStatus: string;
+      return_request_id?: string;
+      order_number?: string;
+      user_id?: string;
+      resolution?: string;
+    }) => {
       const { error } = await supabase
         .from("return_requests")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
 
-      // Trigger return notification
-      if (return_request_id && user_id) {
-        await supabase.functions.invoke("return-notification", {
-          body: { return_request_id, order_number, user_id, new_status: status },
+      let notificationError: string | null = null;
+      if (previousStatus !== status && return_request_id && order_number && user_id) {
+        const { data, error: notifyError } = await supabase.functions.invoke("return-notification", {
+          body: {
+            return_request_id,
+            order_number,
+            user_id,
+            new_status: status,
+            resolution,
+          },
         });
+
+        if (notifyError) {
+          notificationError = notifyError.message;
+        } else if (data?.success === false) {
+          notificationError = data.error || "Notification failed";
+        } else if (data?.email_sent === false) {
+          notificationError = data.message || "Email not sent";
+        }
       }
+
+      return { notificationError };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-returns"] });
-      toast.success("Return status updated & customer notified");
+      toast.success("Return status updated");
+      if (result?.notificationError) {
+        toast.error(`Status updated, but email notification failed: ${result.notificationError}`);
+      }
     },
   });
 
@@ -134,7 +169,17 @@ export default function AdminReturns() {
                 </div>
                 <select
                   value={r.status}
-                  onChange={(e) => updateStatus.mutate({ id: r.id, status: e.target.value })}
+                  onChange={(e) =>
+                    updateStatus.mutate({
+                      id: r.id,
+                      status: e.target.value,
+                      previousStatus: r.status,
+                      return_request_id: r.return_request_id,
+                      order_number: r.order_number,
+                      user_id: r.user_id,
+                      resolution: r.resolution,
+                    })
+                  }
                   className={`rounded-lg px-2 py-1 text-xs outline-none font-medium ${getStatusColor(r.status)} border-0`}
                 >
                   <option value="pending">Pending</option>
@@ -178,7 +223,17 @@ export default function AdminReturns() {
                   <td className="py-3 px-4">
                     <select
                       value={r.status}
-                      onChange={(e) => updateStatus.mutate({ id: r.id, status: e.target.value })}
+                      onChange={(e) =>
+                        updateStatus.mutate({
+                          id: r.id,
+                          status: e.target.value,
+                          previousStatus: r.status,
+                          return_request_id: r.return_request_id,
+                          order_number: r.order_number,
+                          user_id: r.user_id,
+                          resolution: r.resolution,
+                        })
+                      }
                       className={`rounded-lg px-2 py-1 text-xs outline-none font-medium ${getStatusColor(r.status)} border-0`}
                     >
                       <option value="pending">Pending</option>

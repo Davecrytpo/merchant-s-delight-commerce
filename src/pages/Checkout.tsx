@@ -257,6 +257,8 @@ export default function Checkout() {
         tax,
         shippingAddress: {
           name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
           address: formData.address,
           city: formData.city,
           state: formData.state,
@@ -283,9 +285,9 @@ export default function Checkout() {
       if (lastError) {
         const message = lastError.message || "Payment service error";
         if (message.includes("Failed to send a request")) {
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "unknown";
+          const apiUrl = import.meta.env.VITE_API_URL || "/api";
           throw new Error(
-            `Unable to reach Supabase Edge Functions at ${supabaseUrl}. Confirm the app is using the correct project URL and that create-checkout is deployed on that project.`
+            `Unable to reach the checkout API at ${apiUrl}. Confirm the MongoDB backend server is running and the payment endpoint is available.`
           );
         }
         throw new Error(message);
@@ -597,7 +599,7 @@ export default function Checkout() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Coins className={`w-4 h-4 ${usePoints ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="text-xs font-bold uppercase tracking-wider text-[10px]">ShoeShop Rewards</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[10px]">Merchant's Delight Rewards</span>
                 </div>
                 <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} className="w-4 h-4 accent-primary cursor-pointer" />
               </div>

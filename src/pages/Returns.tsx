@@ -20,7 +20,6 @@ interface DisplayMessage {
   returnAction?: any;
 }
 
-const RETURN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/return-assistant`;
 const RETURN_SUGGESTIONS = ["I want to return an item", "Check my return status", "What's the return policy?"];
 
 export default function Returns() {
@@ -45,31 +44,18 @@ export default function Returns() {
     }
   }, [messages, isStreaming]);
 
-  const getHeaders = useCallback(async () => {
-    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token || publishableKey;
-    return {
-      "Content-Type": "application/json",
-      apikey: publishableKey,
-      Authorization: `Bearer ${token}`,
-    };
-  }, []);
-
   const handleReturnAction = useCallback(async (actionType: string, payload: any) => {
     try {
-      const resp = await fetch(RETURN_URL, {
-        method: "POST",
-        headers: await getHeaders(),
-        body: JSON.stringify({ action: actionType, payload }),
+      const { data, error } = await supabase.functions.invoke("return-assistant", {
+        body: { action: actionType, payload },
       });
-      if (!resp.ok) throw new Error("Action failed");
-      return await resp.json();
+      if (error) throw new Error(error.message || "Action failed");
+      return data;
     } catch (e) {
       console.error("Return action error:", e);
       return null;
     }
-  }, [getHeaders]);
+  }, []);
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isStreaming) return;
@@ -136,47 +122,11 @@ export default function Returns() {
     };
 
     try {
-      const resp = await fetch(RETURN_URL, {
-        method: "POST",
-        headers: await getHeaders(),
-        body: JSON.stringify({ messages: newHistory }),
+      const { data, error } = await supabase.functions.invoke("return-assistant", {
+        body: { messages: newHistory },
       });
-
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || `AI service unavailable (${resp.status})`);
-      }
-
-      if (!resp.body) throw new Error("No response body");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) upsertAssistant(content);
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
+      if (error) throw new Error(error.message || "AI service unavailable");
+      upsertAssistant(data?.reply || "I couldn't generate a response right now.");
 
       setChatHistory((prev) => [...prev, { role: "assistant", content: assistantText }]);
 
@@ -370,7 +320,7 @@ export default function Returns() {
                 </button>
               </div>
               <p className="text-[10px] text-center text-muted-foreground mt-3 font-medium tracking-wide">
-                Powered by ShoeShop AI Assistant • Secure & Encrypted
+                Powered by Merchant's Delight AI Assistant • Secure & Encrypted
               </p>
             </form>
           </div>

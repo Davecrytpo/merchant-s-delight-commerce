@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function AdminSettings() {
-  const [storeName, setStoreName] = useState("ShoeShop");
+  const [storeName, setStoreName] = useState("Merchant's Delight");
   const [currency, setCurrency] = useState("USD");
   const inputClass = "w-full bg-secondary rounded-xl px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary";
 
