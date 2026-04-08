@@ -1,40 +1,45 @@
 # Merchant's Delight Commerce
 
-Merchant's Delight Commerce is a React, Vite, MongoDB, Express, and Stripe storefront for premium footwear. It includes a customer storefront, checkout flow, shipping management, returns, rewards, and an admin dashboard.
+Merchant's Delight Commerce is a full-stack footwear storefront built with React, Vite, Express, MongoDB, and Stripe. It includes a customer-facing shop, account and returns flows, an admin dashboard, shipping management, order tracking, and rewards support.
 
-## Core Features
+## Overview
 
-- MongoDB-backed product, order, customer, review, shipping, and return data
-- Express API with JWT-based authentication
-- Stripe checkout integration from the Node backend
-- Country-aware shipping method selection with USPS and DHL defaults
-- Returns workflow with customer and admin views
-- Rewards, reviews, and discount-code support
-- Admin areas for products, orders, returns, reviews, customers, and shipping
+This repository now runs on a custom Node and MongoDB backend.
 
-## Stack
+- Frontend: React, TypeScript, Vite, Tailwind CSS
+- Backend: Express, MongoDB, JWT authentication
+- Payments: Stripe Checkout
+- Shipping: USPS and DHL shipping-method support in the checkout flow
+- Admin: products, orders, customers, reviews, returns, and shipping management
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Express
-- MongoDB
-- Stripe
+## Features
 
-## Local Setup
+- Product catalog with categories, variants, images, and featured products
+- Customer authentication and profile management
+- Cart, wishlist, and account pages
+- Stripe-powered checkout
+- Shipping method selection by destination
+- Order history and order tracking
+- Returns request flow for customers and admins
+- Review and reward-points system
+- Admin dashboard for day-to-day store operations
 
-```bash
-git clone https://github.com/Davecrytpo/merchant-s-delight-commerce.git
-cd merchant-s-delight-commerce
-npm install
-npm run server
-npm run dev
+## Project Structure
+
+```text
+server/                  Express API and MongoDB logic
+src/                     React application
+src/components/          UI components
+src/context/             Auth, cart, and wishlist providers
+src/hooks/               Data and feature hooks
+src/integrations/api/    Frontend API client
+src/pages/               Storefront and admin pages
+public/                  Static assets
 ```
 
 ## Environment Variables
 
-Create a `.env` file with:
+Create a local `.env` file:
 
 ```env
 VITE_API_URL=/api
@@ -50,8 +55,62 @@ DHL_API_KEY=your_dhl_api_key
 DHL_API_SECRET=your_dhl_api_secret
 ```
 
-## Notes
+An example file is included in `.env.example`.
 
-- Vite proxies `/api` requests to the Express server on `http://localhost:4000` during local development.
-- The backend seeds default categories, products, product images, product variants, and shipping methods when the MongoDB database is empty.
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the backend:
+
+```bash
+npm run server
+```
+
+Start the frontend in a second terminal:
+
+```bash
+npm run dev
+```
+
+Production build:
+
+```bash
+npm run build
+```
+
+## Backend Notes
+
+- The API runs on `http://localhost:4000` by default.
+- The Vite frontend proxies `/api` requests to the backend during local development.
+- The backend seeds default categories, products, product images, product variants, and shipping methods when the database is empty.
 - The first account created becomes the bootstrap admin account.
+
+## Current Status
+
+- Runtime backend is MongoDB and Express
+- Authentication is handled by the custom API client and JWT sessions
+- Checkout is handled through Stripe
+- Supabase runtime dependencies and legacy project files have been removed from the active app
+
+## Verification
+
+The project has been verified with:
+
+- production build validation
+- live MongoDB connectivity
+- checkout session creation through Stripe
+- order persistence and status updates
+- rewards and notification flow checks
+
+## Repository
+
+Main branch:
+
+```text
+https://github.com/Davecrytpo/merchant-s-delight-commerce
+```
