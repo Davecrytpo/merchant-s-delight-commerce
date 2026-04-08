@@ -28,12 +28,6 @@ export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
-
-  // Only show on Homepage as requested by user
-  if (location.pathname !== "/") {
-    return null;
-  }
-
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: "welcome-shop",
@@ -81,6 +75,12 @@ export default function AIChatWidget() {
       Authorization: `Bearer ${token}`,
     };
   }, []);
+
+  // Hide on admin pages and the returns page (returns has its own AI)
+  const hidden = location.pathname.startsWith("/admin") || location.pathname === "/returns";
+  if (hidden) {
+    return null;
+  }
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isStreaming) return;
@@ -199,25 +199,25 @@ export default function AIChatWidget() {
             initial={{ opacity: 0, scale: 0.9, y: 20, transformOrigin: "bottom right" }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="w-[92vw] sm:w-[420px] h-[78vh] sm:h-[620px] max-h-[85vh] glass border border-white/10 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden mb-3"
+            className="w-[92vw] sm:w-[420px] h-[78vh] sm:h-[620px] max-h-[85vh] bg-card border border-border rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden mb-3"
           >
             {/* Header */}
             <div className="shrink-0">
-              <div className="px-4 py-3 sm:p-4 gold-gradient flex items-center justify-between">
+              <div className="px-4 py-3 sm:p-4 copper-gradient flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-background/20 backdrop-blur-md flex items-center justify-center">
-                    <SearchIcon className="w-5 h-5 text-background" />
+                  <div className="w-9 h-9 rounded-full bg-primary-foreground/20 backdrop-blur-md flex items-center justify-center">
+                    <SearchIcon className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-background font-display font-bold text-sm">Shopping Assistant</h3>
+                    <h3 className="text-primary-foreground font-display font-bold text-sm">Shopping Assistant</h3>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
-                      <span className="text-[9px] text-background/80 font-bold uppercase tracking-widest">Online</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
+                      <span className="text-[9px] text-primary-foreground/80 font-bold uppercase tracking-widest">Online</span>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-background/10 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-background" />
+                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-primary-foreground/10 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-primary-foreground" />
                 </button>
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function AIChatWidget() {
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.type === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`flex gap-2.5 max-w-[88%] ${m.type === "user" ? "flex-row-reverse" : ""}`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.type === "bot" ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.type === "bot" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
                       {m.type === "bot" ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                     </div>
                     <div className="space-y-2 min-w-0">
@@ -235,11 +235,11 @@ export default function AIChatWidget() {
                         className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
                           m.type === "user"
                             ? "bg-primary text-primary-foreground rounded-tr-sm"
-                            : "bg-secondary/50 text-foreground rounded-tl-sm"
+                            : "bg-secondary text-foreground rounded-tl-sm"
                         }`}
                       >
                         {m.type === "bot" ? (
-                          <div className="prose prose-sm prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:pl-4 [&>ul]:space-y-1 [&>ol]:pl-4 [&>ol]:space-y-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&_strong]:text-primary [&_a]:text-primary">
+                          <div className="prose prose-sm max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:pl-4 [&>ul]:space-y-1 [&>ol]:pl-4 [&>ol]:space-y-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&_strong]:text-primary [&_a]:text-primary">
                             <ReactMarkdown>{m.text}</ReactMarkdown>
                           </div>
                         ) : (
@@ -253,7 +253,7 @@ export default function AIChatWidget() {
                           key={pl.slug}
                           to={`/product/${pl.slug}`}
                           onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-3 p-2.5 bg-background border border-primary/20 rounded-xl hover:border-primary/50 transition-all group overflow-hidden"
+                          className="flex items-center gap-3 p-2.5 bg-secondary border border-primary/20 rounded-xl hover:border-primary/50 transition-all group overflow-hidden"
                         >
                           {pl.image && <img src={pl.image} alt={pl.name} className="w-10 h-10 rounded-lg object-cover" />}
                           <div className="flex-1 min-w-0">
@@ -271,7 +271,7 @@ export default function AIChatWidget() {
                             <button
                               key={s}
                               onClick={() => handleSend(s)}
-                              className="text-[10px] font-bold px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition-colors bg-background/50"
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition-colors bg-card"
                             >
                               {s}
                             </button>
@@ -285,10 +285,10 @@ export default function AIChatWidget() {
               {isStreaming && messages[messages.length - 1]?.type !== "bot" && (
                 <div className="flex justify-start">
                   <div className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                       <Bot className="w-3.5 h-3.5" />
                     </div>
-                    <div className="bg-secondary/50 px-4 py-3 rounded-2xl rounded-tl-sm">
+                    <div className="bg-secondary px-4 py-3 rounded-2xl rounded-tl-sm">
                       <Loader2 className="w-4 h-4 animate-spin text-primary" />
                     </div>
                   </div>
@@ -304,12 +304,12 @@ export default function AIChatWidget() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about shoes, sizes, styles..."
                   disabled={isStreaming}
-                  className="w-full bg-secondary/50 border border-border/50 rounded-2xl pl-4 pr-12 py-3.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
+                  className="w-full bg-secondary border border-border rounded-2xl pl-4 pr-12 py-3.5 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isStreaming}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 gold-gradient text-background rounded-xl flex items-center justify-center disabled:opacity-50 disabled:grayscale transition-all"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 copper-gradient text-primary-foreground rounded-xl flex items-center justify-center disabled:opacity-50 disabled:grayscale transition-all"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -323,7 +323,7 @@ export default function AIChatWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full gold-gradient shadow-2xl flex items-center justify-center text-background relative group"
+        className="w-14 h-14 sm:w-16 sm:h-16 rounded-full copper-gradient shadow-xl shadow-primary/20 flex items-center justify-center text-primary-foreground relative group"
       >
         <AnimatePresence mode="wait">
           {isOpen ? (

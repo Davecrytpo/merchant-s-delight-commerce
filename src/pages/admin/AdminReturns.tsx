@@ -32,16 +32,23 @@ export default function AdminReturns() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, return_request_id, order_number, user_id }: { id: string; status: string; return_request_id?: string; order_number?: string; user_id?: string }) => {
       const { error } = await supabase
         .from("return_requests")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      // Trigger return notification
+      if (return_request_id && user_id) {
+        await supabase.functions.invoke("return-notification", {
+          body: { return_request_id, order_number, user_id, new_status: status },
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-returns"] });
-      toast.success("Return status updated");
+      toast.success("Return status updated & customer notified");
     },
   });
 

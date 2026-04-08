@@ -45,7 +45,7 @@ export default function Footer() {
               className="flex-1 bg-secondary rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary text-sm"
               required
             />
-            <button type="submit" disabled={subscribing} className="gold-gradient text-background font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 text-sm sm:text-base whitespace-nowrap">
+            <button type="submit" disabled={subscribing} className="copper-gradient text-primary-foreground font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 text-sm sm:text-base whitespace-nowrap">
               {subscribing ? "..." : "Subscribe"}
             </button>
           </form>
@@ -57,28 +57,28 @@ export default function Footer() {
         <div>
           <h4 className="font-display font-semibold text-base md:text-lg mb-3 md:mb-4">Shop</h4>
           <div className="flex flex-col gap-2">
-            <Link to="/shop" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">All Shoes</Link>
-            <Link to="/shop?category=Running" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Running</Link>
-            <Link to="/shop?category=Casual" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Casual</Link>
-            <Link to="/shop?category=Boots" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Boots</Link>
-            <Link to="/shop?category=Training" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Training</Link>
+            <Link to="/shop" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">All Shoes</Link>
+            <Link to="/shop?category=Running" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Running</Link>
+            <Link to="/shop?category=Casual" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Casual</Link>
+            <Link to="/shop?category=Boots" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Boots</Link>
+            <Link to="/shop?category=Training" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Training</Link>
           </div>
         </div>
         <div>
           <h4 className="font-display font-semibold text-base md:text-lg mb-3 md:mb-4">Help</h4>
           <div className="flex flex-col gap-2">
-            <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">FAQ</Link>
-            <Link to="/size-guide" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Size Guide</Link>
-            <Link to="/track-order" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Track Order</Link>
-            <Link to="/returns" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Returns & Exchanges</Link>
-            <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Contact Us</Link>
+            <Link to="/faq" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">FAQ</Link>
+            <Link to="/size-guide" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Size Guide</Link>
+            <Link to="/track-order" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Track Order</Link>
+            <Link to="/returns" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Returns & Exchanges</Link>
+            <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Contact Us</Link>
           </div>
         </div>
         <div>
           <h4 className="font-display font-semibold text-base md:text-lg mb-3 md:mb-4">Company</h4>
           <div className="flex flex-col gap-2">
-            <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">About Us</Link>
-            <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors text-xs sm:text-sm">Blog</Link>
+            <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">About Us</Link>
+            <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors text-xs sm:text-sm">Blog</Link>
             <span className="text-muted-foreground text-xs sm:text-sm">Careers</span>
             <span className="text-muted-foreground text-xs sm:text-sm">Press</span>
           </div>
