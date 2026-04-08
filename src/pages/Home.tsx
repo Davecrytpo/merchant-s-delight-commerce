@@ -66,19 +66,18 @@ export default function Home() {
       {/* Features Bar */}
       <section className="py-8 md:py-12 border-b border-border relative z-20 bg-background">
         <div className="container mx-auto px-3 md:px-4">
-          {/* Mobile: horizontal scroll. Desktop: grid */}
           <div className="flex md:grid md:grid-cols-4 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-3 px-3 md:mx-0 md:px-0">
             {features.map((f, i) => (
               <Link key={i} to={f.link} className="block relative z-30 group snap-start shrink-0 w-[70%] sm:w-[45%] md:w-auto">
                 <motion.div
-                  className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl glass h-full hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-primary/50"
+                  className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl elevated-card h-full"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0 shadow-lg">
-                    <f.icon className="w-4 h-4 md:w-5 md:h-5 text-background" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl copper-gradient flex items-center justify-center shrink-0 shadow-md">
+                    <f.icon className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
                   </div>
                   <div className="min-w-0">
                     <h4 className="font-semibold text-xs sm:text-sm group-hover:text-primary transition-colors">{f.title}</h4>
@@ -121,7 +120,7 @@ export default function Home() {
                 >
                   <Link
                     to={`/shop?category=${cat.id}`}
-                    className="group relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden block"
+                    className="group relative aspect-[4/3] rounded-xl sm:rounded-2xl overflow-hidden block shadow-md hover:shadow-xl transition-shadow"
                   >
                     <img
                       src={getSafeImageSrc(cat.image_url || categoryFallbackImages[cat.slug])}
@@ -134,9 +133,9 @@ export default function Home() {
                         target.src = IMAGE_PLACEHOLDER;
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
                     <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4">
-                      <h3 className="font-display text-base sm:text-xl font-bold">{cat.name}</h3>
+                      <h3 className="font-display text-base sm:text-xl font-bold text-primary-foreground">{cat.name}</h3>
                     </div>
                   </Link>
                 </motion.div>
@@ -148,7 +147,7 @@ export default function Home() {
 
       {/* Featured Products */}
       {featured.length > 0 && (
-        <section className="py-12 md:py-20 bg-card/50">
+        <section className="py-12 md:py-20 bg-secondary/30">
           <div className="container mx-auto px-3 md:px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -178,7 +177,7 @@ export default function Home() {
 
       {/* Trending */}
       {trending.length > 0 && (
-        <section className="py-12 md:py-20 bg-card/50">
+        <section className="py-12 md:py-20">
           <div className="container mx-auto px-3 md:px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -201,7 +200,7 @@ export default function Home() {
 
       {/* New Arrivals */}
       {newArrivals.length > 0 && (
-        <section className="py-12 md:py-20">
+        <section className="py-12 md:py-20 bg-secondary/30">
           <div className="container mx-auto px-3 md:px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -223,7 +222,7 @@ export default function Home() {
       )}
 
       {/* Testimonials */}
-      <section className="py-12 md:py-20 bg-card/50">
+      <section className="py-12 md:py-20">
         <div className="container mx-auto px-3 md:px-4 text-center">
           <span className="text-primary text-xs sm:text-sm font-semibold uppercase tracking-wider">Reviews</span>
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mt-1 mb-8 md:mb-12">What Our Customers Say</h2>
@@ -235,7 +234,7 @@ export default function Home() {
             ].map((review, i) => (
               <motion.div
                 key={i}
-                className="glass rounded-xl sm:rounded-2xl p-4 sm:p-6 text-left"
+                className="elevated-card rounded-xl sm:rounded-2xl p-4 sm:p-6 text-left"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}

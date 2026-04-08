@@ -47,7 +47,6 @@ export default function Header() {
     setSearchQuery("");
   }, [location]);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -79,18 +78,18 @@ export default function Header() {
     <>
       <motion.header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled ? "glass py-2 md:py-3" : "bg-transparent py-3 md:py-5"
+          scrolled ? "bg-card/95 backdrop-blur-xl shadow-sm border-b border-border/40 py-2 md:py-3" : "bg-transparent py-3 md:py-5"
         }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
       >
         <div className="container mx-auto px-3 md:px-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl gold-gradient flex items-center justify-center transition-transform group-hover:scale-110">
-              <span className="text-background font-display font-bold text-lg md:text-xl">S</span>
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl copper-gradient flex items-center justify-center transition-transform group-hover:scale-110 shadow-md">
+              <span className="text-primary-foreground font-display font-bold text-lg md:text-xl">S</span>
             </div>
             <span className="font-display text-lg md:text-xl font-bold tracking-tight">
-              Shoe<span className="gold-text">Shop</span>
+              Shoe<span className="copper-text">Shop</span>
             </span>
           </Link>
 
@@ -100,7 +99,7 @@ export default function Header() {
                 key={link.path}
                 to={link.path}
                 className={`text-xs font-bold tracking-widest uppercase transition-colors duration-300 hover:text-primary ${
-                  location.pathname === link.path ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
+                  location.pathname === link.path ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 {link.label}
@@ -131,13 +130,13 @@ export default function Header() {
 
         <AnimatePresence>
           {searchOpen && (
-            <motion.div ref={searchRef} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute left-0 right-0 top-full glass border-t border-border shadow-2xl overflow-hidden">
+            <motion.div ref={searchRef} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute left-0 right-0 top-full bg-card/95 backdrop-blur-xl border-t border-border shadow-xl overflow-hidden">
               <div className="container mx-auto px-3 md:px-4 py-4 md:py-6">
                 <form onSubmit={handleSearchSubmit} className="relative">
                   <input
                     type="text"
                     placeholder="Search premium footwear..."
-                    className="w-full bg-secondary rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 text-base md:text-lg outline-none focus:ring-2 focus:ring-primary shadow-inner"
+                    className="w-full bg-secondary rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 text-base md:text-lg outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -147,8 +146,8 @@ export default function Header() {
                 {searchResults && searchResults.length > 0 && (
                   <div className="mt-3 md:mt-4 grid gap-1.5 md:gap-2 max-h-[50vh] overflow-y-auto">
                     {searchResults.map((p: any) => (
-                      <Link key={p.id} to={`/product/${p.slug}`} className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-xl hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-secondary flex-shrink-0 flex items-center justify-center text-[10px] font-bold">SHOE</div>
+                      <Link key={p.id} to={`/product/${p.slug}`} className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-xl hover:bg-primary/5 transition-colors border border-transparent hover:border-primary/20">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-secondary flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-muted-foreground">SHOE</div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm truncate">{p.name}</p>
                           <p className="text-xs text-muted-foreground uppercase tracking-tighter">{p.brand}</p>
@@ -167,15 +166,13 @@ export default function Header() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div className="fixed inset-0 z-[100] lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Backdrop */}
             <motion.div
-              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
             />
-            {/* Panel */}
             <motion.div className="absolute inset-y-0 right-0 w-[80%] max-w-sm bg-card border-l border-border flex flex-col shadow-2xl" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}>
               <div className="p-5 flex items-center justify-between border-b border-border">
                 <span className="font-display text-lg font-bold">Menu</span>
@@ -209,7 +206,7 @@ export default function Header() {
                   <Link to="/wishlist" className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
                     <Heart className="w-5 h-5" />
                     <span className="font-medium">Wishlist</span>
-                    {wishlistItems.length > 0 && <span className="ml-auto text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{wishlistItems.length}</span>}
+                    {wishlistItems.length > 0 && <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{wishlistItems.length}</span>}
                   </Link>
                   {user && (
                     <button onClick={() => { signOut(); setMobileOpen(false); }} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-destructive/10 transition-colors text-destructive w-full mt-4">
@@ -220,7 +217,7 @@ export default function Header() {
                 </div>
               </nav>
               <div className="p-5 border-t border-border">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] text-center">Professional Footwear Solutions</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] text-center">Premium Footwear Solutions</p>
               </div>
             </motion.div>
           </motion.div>
