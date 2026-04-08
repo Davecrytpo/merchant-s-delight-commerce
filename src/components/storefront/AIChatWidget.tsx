@@ -43,12 +43,6 @@ export default function AIChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: products } = useProducts();
 
-  // Hide on admin pages and the returns page (returns has its own AI)
-  const hidden = location.pathname.startsWith("/admin") || location.pathname === "/returns";
-  if (hidden) {
-    return null;
-  }
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -81,6 +75,12 @@ export default function AIChatWidget() {
       Authorization: `Bearer ${token}`,
     };
   }, []);
+
+  // Hide on admin pages and the returns page (returns has its own AI)
+  const hidden = location.pathname.startsWith("/admin") || location.pathname === "/returns";
+  if (hidden) {
+    return null;
+  }
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isStreaming) return;
