@@ -41,7 +41,7 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
-          <Toaster position="top-right" theme="dark" />
+          <Toaster position="top-right" theme="light" />
           <Routes>
             {/* Storefront */}
             <Route element={<StorefrontLayout />}>
