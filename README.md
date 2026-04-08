@@ -114,3 +114,5 @@ Main branch:
 ```text
 https://github.com/Davecrytpo/merchant-s-delight-commerce
 ```
+
+Maintained by Dave.
