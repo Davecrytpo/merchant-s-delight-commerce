@@ -28,12 +28,6 @@ export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
-
-  // Hide on admin pages and the returns page (returns has its own AI)
-  if (location.pathname.startsWith("/admin") || location.pathname === "/returns") {
-    return null;
-  }
-
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: "welcome-shop",
@@ -48,6 +42,12 @@ export default function AIChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: products } = useProducts();
+
+  // Hide on admin pages and the returns page (returns has its own AI)
+  const hidden = location.pathname.startsWith("/admin") || location.pathname === "/returns";
+  if (hidden) {
+    return null;
+  }
 
   useEffect(() => {
     if (scrollRef.current) {
