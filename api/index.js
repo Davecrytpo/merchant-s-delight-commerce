@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import cors from "cors";
@@ -14,6 +15,8 @@ const DB_NAME = process.env.MONGODB_DB_NAME || "merchants_delight";
 const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 const DEFAULT_SITE_URL = process.env.DEFAULT_SITE_URL || "http://localhost:8080";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 
 if (!MONGODB_URI) throw new Error("MONGODB_URI is required");
 
@@ -53,6 +56,7 @@ const collectionMap = {
   orders: "orders",
   shipping_methods: "shipping_methods",
   return_requests: "return_requests",
+  ai_debug_logs: "ai_debug_logs",
   notifications: "notifications",
   admin_notifications: "admin_notifications",
   newsletter_subscribers: "newsletter_subscribers",
@@ -115,6 +119,180 @@ const createNotification = async (db, title, message, link = "/admin/orders") =>
     is_read: false,
     created_at: nowIso(),
   });
+};
+
+const createAiDebugLog = async (db, entry = {}) => {
+  const doc = {
+    id: randomUUID(),
+    source: entry.source || "unknown",
+    status: entry.status || "info",
+    provider: "openai",
+    model: entry.model || OPENAI_MODEL,
+    configured: Boolean(OPENAI_API_KEY),
+    duration_ms: entry.duration_ms ?? null,
+    message: entry.message || "",
+    error: entry.error || null,
+    request_excerpt: entry.request_excerpt || "",
+    meta: entry.meta || {},
+    created_at: nowIso(),
+  };
+
+  try {
+    await db.collection("ai_debug_logs").insertOne(doc);
+  } catch (error) {
+    console.error("AI debug log insert failed:", error);
+  }
+
+  return doc;
+};
+
+const notifyAiFailure = async (db, source, errorMessage) => {
+  try {
+    await createNotification(
+      db,
+      `${source} degraded`,
+      `${source} fell back after an OpenAI error: ${errorMessage}`.slice(0, 220),
+      "/admin/settings"
+    );
+  } catch (error) {
+    console.error("AI admin notification failed:", error);
+  }
+};
+
+const normalizeAiMessages = (messages = []) =>
+  (Array.isArray(messages) ? messages : [])
+    .filter((message) => message && typeof message.content === "string" && typeof message.role === "string")
+    .map((message) => ({ role: message.role, content: message.content.trim() }))
+    .filter((message) => message.content);
+
+const latestUserMessage = (messages = []) =>
+  [...messages].reverse().find((message) => message.role === "user" && typeof message.content === "string")?.content || "";
+
+const keywordScore = (text, keywords = []) => {
+  const haystack = String(text || "").toLowerCase();
+  return keywords.reduce((score, keyword) => (haystack.includes(String(keyword || "").toLowerCase()) ? score + 1 : score), 0);
+};
+
+const buildMainAssistantFallback = ({ messages, products, categories }) => {
+  const prompt = latestUserMessage(messages);
+  const normalizedPrompt = prompt.toLowerCase();
+
+  if (!products.length) {
+    return "I can help with product discovery, sizing, and styling, but our catalog is not available right now. Please try again shortly.";
+  }
+
+  const scoredProducts = products
+    .map((product) => ({
+      product,
+      score: keywordScore(normalizedPrompt, [
+        product.name,
+        product.category,
+        product.slug,
+        product.description,
+        ...(Array.isArray(product.tags) ? product.tags : []),
+      ]),
+    }))
+    .sort((a, b) => b.score - a.score || Number(a.product.price || 0) - Number(b.product.price || 0));
+
+  const matches = scoredProducts.filter((entry) => entry.score > 0).slice(0, 3).map((entry) => entry.product);
+  const showcase = (matches.length ? matches : products.slice(0, 3)).map((product) =>
+    `- **${product.name}** ($${product.price}): ${product.description || "Premium footwear from our current collection."}`
+  );
+
+  if (/(trend|popular|best|recommend|suggest)/i.test(prompt)) {
+    return `Here are strong options from our current collection:\n${showcase.join("\n")}\n\nTell me your preferred use case, size, budget, or style direction and I will narrow this down further.`;
+  }
+
+  if (/(under|budget|\$|price|afford)/i.test(prompt)) {
+    const budget = Number((prompt.match(/\$?\s*(\d{2,4})/) || [])[1]);
+    const withinBudget = Number.isFinite(budget)
+      ? products.filter((product) => Number(product.price || 0) <= budget).slice(0, 3)
+      : [];
+    if (withinBudget.length) {
+      return `Here are options within your stated budget:\n${withinBudget
+        .map((product) => `- **${product.name}** ($${product.price}): ${product.description || "Premium footwear option."}`)
+        .join("\n")}`;
+    }
+  }
+
+  if (/(category|categories|types|collection)/i.test(prompt) && categories.length) {
+    return `Our current categories include:\n${categories
+      .map((category) => `- **${category.name}**: ${category.description || "Available now."}`)
+      .join("\n")}`;
+  }
+
+  return `I can help you shop our collection. Based on your message, these are the best starting points:\n${showcase.join(
+    "\n"
+  )}\n\nIf you tell me whether you want something for running, everyday wear, dress styling, or a price range, I can make this much more precise.`;
+};
+
+const buildReturnAssistantFallback = ({ messages }) => {
+  const prompt = latestUserMessage(messages);
+
+  if (/(policy|window|days|eligible|eligibility)/i.test(prompt)) {
+    return "Our return policy is **14 days from delivery** for items returned in original condition. If you share your **order number**, I can help check whether the order is still within the return window.";
+  }
+
+  if (/(status|track|ret-)/i.test(prompt)) {
+    return "Please share your **return request ID** in the format `RET-XXXX`, and I will help check the current status.";
+  }
+
+  if (/(return|exchange|refund)/i.test(prompt)) {
+    return "To start a return or exchange, send your **order number** in the format `ORD-XXXX` and, if needed, the email used for the order. I can then help verify eligibility and guide the next step.";
+  }
+
+  return "I can help with returns, exchanges, and return status checks. Send your **order number** to verify eligibility, or send your **return request ID** to track an existing return.";
+};
+
+const tryOpenAiText = async ({ system, messages }) => {
+  if (!OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not configured");
+  }
+
+  const result = await generateText({
+    model: openai(OPENAI_MODEL),
+    system,
+    messages,
+  });
+
+  return result.text?.trim();
+};
+
+const generateResilientAssistantReply = async ({ db, source, system, messages, fallbackBuilder, logLabel }) => {
+  const startedAt = Date.now();
+  const requestExcerpt = latestUserMessage(messages).slice(0, 240);
+
+  try {
+    const openAiReply = await tryOpenAiText({ system, messages });
+    if (!openAiReply) {
+      throw new Error("OpenAI returned an empty response");
+    }
+
+    await createAiDebugLog(db, {
+      source,
+      status: "success",
+      duration_ms: Date.now() - startedAt,
+      message: "OpenAI response generated successfully.",
+      request_excerpt: requestExcerpt,
+      meta: { message_count: messages.length },
+    });
+
+    return openAiReply;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`${logLabel} fallback engaged`, errorMessage);
+    await createAiDebugLog(db, {
+      source,
+      status: "fallback",
+      duration_ms: Date.now() - startedAt,
+      message: "Fallback response served after OpenAI failure.",
+      error: errorMessage,
+      request_excerpt: requestExcerpt,
+      meta: { message_count: messages.length },
+    });
+    await notifyAiFailure(db, source, errorMessage);
+    return fallbackBuilder();
+  }
 };
 
 const withJoins = async (db, table, rows, selectSpec) => {
@@ -186,6 +364,60 @@ app.get("/api/health", async (req, res) => {
     categories: await req.db.collection("categories").countDocuments(),
     products: await req.db.collection("products").countDocuments(),
   });
+});
+
+app.post("/api/functions/ai-debug-status", async (req, res) => {
+  const isAdmin = req.user ? await hasRole(req.db, req.user.id, "admin") : false;
+  if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
+
+  const recentLogs = await req.db.collection("ai_debug_logs").find({}).sort({ created_at: -1 }).limit(10).toArray();
+  const latestSuccess = await req.db.collection("ai_debug_logs").findOne({ status: "success" }, { sort: { created_at: -1 } });
+  const latestFallback = await req.db.collection("ai_debug_logs").findOne({ status: "fallback" }, { sort: { created_at: -1 } });
+
+  return res.json({
+    configured: Boolean(OPENAI_API_KEY),
+    provider: "openai",
+    model: OPENAI_MODEL,
+    latest_success_at: latestSuccess?.created_at || null,
+    latest_fallback_at: latestFallback?.created_at || null,
+    recent_logs: recentLogs,
+  });
+});
+
+app.post("/api/functions/ai-debug-test", async (req, res) => {
+  const isAdmin = req.user ? await hasRole(req.db, req.user.id, "admin") : false;
+  if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
+
+  const startedAt = Date.now();
+  try {
+    const text = await tryOpenAiText({
+      system: "You are a connectivity test. Reply with exactly: OPENAI_OK",
+      messages: [{ role: "user", content: "Ping" }],
+    });
+
+    await createAiDebugLog(req.db, {
+      source: "admin-ai-test",
+      status: "success",
+      duration_ms: Date.now() - startedAt,
+      message: "Admin OpenAI connectivity test passed.",
+      request_excerpt: "Ping",
+      meta: { reply: text },
+    });
+
+    return res.json({ ok: text === "OPENAI_OK", reply: text, model: OPENAI_MODEL });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await createAiDebugLog(req.db, {
+      source: "admin-ai-test",
+      status: "error",
+      duration_ms: Date.now() - startedAt,
+      message: "Admin OpenAI connectivity test failed.",
+      error: errorMessage,
+      request_excerpt: "Ping",
+    });
+    await notifyAiFailure(req.db, "admin-ai-test", errorMessage);
+    return res.status(500).json({ ok: false, error: errorMessage, model: OPENAI_MODEL });
+  }
 });
 
 app.post("/api/auth/signup", async (req, res) => {
@@ -404,14 +636,20 @@ app.post("/api/db/:table/query", async (req, res) => {
 });
 
 app.post("/api/functions/ai-assistant", async (req, res) => {
-  const messages = req.body?.messages || [];
+  const messages = normalizeAiMessages(req.body?.messages || []);
   try {
-    const products = await req.db.collection("products").find({}).toArray();
-    const categories = await req.db.collection("categories").find({}).toArray();
+    let products = [];
+    let categories = [];
+    try {
+      [products, categories] = await Promise.all([
+        req.db.collection("products").find({}).toArray(),
+        req.db.collection("categories").find({}).toArray(),
+      ]);
+    } catch (catalogError) {
+      console.error("AI Concierge catalog lookup failed:", catalogError);
+    }
 
-    const { text } = await generateText({
-      model: openai("gpt-4o"),
-      system: `You are the Lead Concierge for Merchant's Delight, a premier high-end footwear destination. 
+    const system = `You are the Lead Concierge for Merchant's Delight, a premier high-end footwear destination. 
 Your tone is sophisticated, knowledgeable, and proactive. You provide expert styling advice, technical performance insights, and impeccable service.
 Use markdown for formatting. Always prioritize our collection.
 
@@ -425,14 +663,21 @@ GUIDELINES:
 1. Provide specific, tailored recommendations based on the user's needs.
 2. Discuss footwear with technical authority (e.g., cushioning tech, leather quality, traction).
 3. If a request is outside our catalog, suggest the most prestigious alternative we carry.
-4. Maintain the aura of a luxury boutique.`,
-      messages: (messages || []).map(m => ({ role: m.role, content: m.content })),
+4. Maintain the aura of a luxury boutique.`;
+
+    const reply = await generateResilientAssistantReply({
+      db: req.db,
+      source: "shopping-assistant",
+      system,
+      messages,
+      logLabel: "AI Concierge Error",
+      fallbackBuilder: () => buildMainAssistantFallback({ messages, products, categories }),
     });
 
-    return res.json({ reply: text });
+    return res.json({ reply });
   } catch (error) {
     console.error("AI Concierge Error:", error);
-    return res.json({ reply: "I apologize, but I am momentarily unable to assist. Please try again or contact our boutique directly." });
+    return res.json({ reply: "I can help you shop our collection, but I could not load the latest concierge response just now. Please try your request again." });
   }
 });
 
@@ -440,37 +685,53 @@ app.post("/api/functions/return-assistant", async (req, res) => {
   const { action, payload, messages } = req.body || {};
 
   if (action === "lookup_order") {
-    const orderNumber = String(payload?.order_number || "").toUpperCase();
-    const order = await req.db.collection("orders").findOne({ order_number: orderNumber });
-    if (!order) return res.json({ found: false, message: "Our records do not indicate an order with that number." });
+    try {
+      const orderNumber = String(payload?.order_number || "").toUpperCase();
+      if (!orderNumber) {
+        return res.json({ found: false, message: "Please provide a valid order number." });
+      }
 
-    const orderEmail = order.shipping_address?.email || order.email || null;
-    if (!payload?.user_id && payload?.email && orderEmail && payload.email.toLowerCase() !== String(orderEmail).toLowerCase()) {
-      return res.json({ found: true, needs_verification: true, message: "The email provided does not match our records for this order." });
+      const order = await req.db.collection("orders").findOne({ order_number: orderNumber });
+      if (!order) return res.json({ found: false, message: "Our records do not indicate an order with that number." });
+
+      const orderEmail = order.shipping_address?.email || order.email || null;
+      if (!payload?.user_id && payload?.email && orderEmail && payload.email.toLowerCase() !== String(orderEmail).toLowerCase()) {
+        return res.json({ found: true, needs_verification: true, message: "The email provided does not match our records for this order." });
+      }
+
+      const deliveredAt = order.delivered_at ? new Date(order.delivered_at) : null;
+      const daysSinceDelivery = deliveredAt ? Math.floor((Date.now() - deliveredAt.getTime()) / 86400000) : null;
+      const eligible = order.status === "delivered" && daysSinceDelivery !== null && daysSinceDelivery <= 14;
+      return res.json({ 
+        found: true, 
+        order, 
+        eligible, 
+        days_remaining: eligible ? 14 - daysSinceDelivery : 0, 
+        reason: eligible ? "This order is currently eligible for a professional return or exchange." : "This order has exceeded our 14-day premium return window." 
+      });
+    } catch (error) {
+      console.error("Return order lookup failed:", error);
+      return res.json({ found: false, message: "I could not verify that order just now. Please try again shortly." });
     }
-
-    const deliveredAt = order.delivered_at ? new Date(order.delivered_at) : null;
-    const daysSinceDelivery = deliveredAt ? Math.floor((Date.now() - deliveredAt.getTime()) / 86400000) : null;
-    const eligible = order.status === "delivered" && daysSinceDelivery !== null && daysSinceDelivery <= 14;
-    return res.json({ 
-      found: true, 
-      order, 
-      eligible, 
-      days_remaining: eligible ? 14 - daysSinceDelivery : 0, 
-      reason: eligible ? "This order is currently eligible for a professional return or exchange." : "This order has exceeded our 14-day premium return window." 
-    });
   }
 
   if (action === "check_return_status") {
-    const returnId = String(payload?.return_request_id || "").toUpperCase();
-    const query = payload?.user_id ? { return_request_id: returnId, user_id: payload.user_id } : { return_request_id: returnId };
-    return res.json({ returns: await req.db.collection("return_requests").find(query).toArray() });
+    try {
+      const returnId = String(payload?.return_request_id || "").toUpperCase();
+      if (!returnId) {
+        return res.json({ returns: [], message: "Please provide a valid return request ID." });
+      }
+      const query = payload?.user_id ? { return_request_id: returnId, user_id: payload.user_id } : { return_request_id: returnId };
+      return res.json({ returns: await req.db.collection("return_requests").find(query).toArray() });
+    } catch (error) {
+      console.error("Return status lookup failed:", error);
+      return res.json({ returns: [], message: "I could not access return status records just now. Please try again shortly." });
+    }
   }
 
   try {
-    const { text } = await generateText({
-      model: openai("gpt-4o"),
-      system: `You are the Senior Return Specialist at Merchant's Delight. 
+    const normalizedMessages = normalizeAiMessages(messages || []);
+    const system = `You are the Senior Return Specialist at Merchant's Delight. 
 You handle return inquiries with empathy, precision, and a focus on high-touch service.
 Our policy is strictly 14 days from delivery for original-condition items.
 
@@ -478,14 +739,21 @@ GUIDELINES:
 1. When a user provides an order number, wait for the system to inject context or acknowledge you are checking.
 2. If the user mentions return policy, explain our 14-day window for delivered items.
 3. If an order is ineligible, be firm yet graceful and offer manual support options.
-4. Use markdown for a clean, professional presentation.`,
-      messages: (messages || []).map(m => ({ role: m.role, content: m.content })),
+4. Use markdown for a clean, professional presentation.`;
+
+    const reply = await generateResilientAssistantReply({
+      db: req.db,
+      source: "return-assistant",
+      system,
+      messages: normalizedMessages,
+      logLabel: "Return AI Error",
+      fallbackBuilder: () => buildReturnAssistantFallback({ messages: normalizedMessages }),
     });
 
-    return res.json({ reply: text });
+    return res.json({ reply });
   } catch (error) {
     console.error("Return AI Error:", error);
-    return res.json({ reply: "I am having difficulty accessing our return records. Please try again shortly." });
+    return res.json({ reply: "I can still help with return guidance, but I could not load the latest return assistant response just now. Please try again." });
   }
 });
 
@@ -605,6 +873,7 @@ const ensureIndexes = async (db) => {
   await db.collection("products").createIndex({ slug: 1 }, { unique: true });
   await db.collection("orders").createIndex({ order_number: 1 }, { unique: true });
   await db.collection("return_requests").createIndex({ return_request_id: 1 }, { unique: true, sparse: true });
+  await db.collection("ai_debug_logs").createIndex({ created_at: -1 });
   await db.collection("newsletter_subscribers").createIndex({ email: 1 }, { unique: true });
   await db.collection("discount_codes").createIndex({ code: 1 }, { unique: true, sparse: true });
   await db.collection("gift_cards").createIndex({ code: 1 }, { unique: true, sparse: true });
