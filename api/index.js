@@ -11,14 +11,17 @@ import { randomUUID } from "node:crypto";
 import { buildProductSeed, buildShippingSeed, defaultCategories } from "./seed-data.js";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
+const MONGODB_DIRECT_URI = process.env.MONGODB_DIRECT_URI || "";
 const DB_NAME = process.env.MONGODB_DB_NAME || "merchants_delight";
 const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 const DEFAULT_SITE_URL = process.env.DEFAULT_SITE_URL || "http://localhost:8080";
+const OLLAMA_BASE_URL = (process.env.OLLAMA_BASE_URL || "").replace(/\/$/, "");
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen3:8b";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 
-if (!MONGODB_URI) throw new Error("MONGODB_URI is required");
+if (!MONGODB_URI && !MONGODB_DIRECT_URI) throw new Error("MONGODB_URI or MONGODB_DIRECT_URI is required");
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -30,8 +33,23 @@ let mongoClient = null;
 const connectDB = async () => {
   if (db) return db;
   if (!mongoClient) {
-    mongoClient = new MongoClient(MONGODB_URI);
-    await mongoClient.connect();
+    const urisToTry = [MONGODB_DIRECT_URI, MONGODB_URI].filter(Boolean);
+    let lastError = null;
+
+    for (const uri of urisToTry) {
+      try {
+        mongoClient = new MongoClient(uri);
+        await mongoClient.connect();
+        break;
+      } catch (error) {
+        lastError = error;
+        mongoClient = null;
+      }
+    }
+
+    if (!mongoClient) {
+      throw lastError || new Error("MongoDB connection failed");
+    }
   }
   db = mongoClient.db(DB_NAME);
   return db;
@@ -126,9 +144,9 @@ const createAiDebugLog = async (db, entry = {}) => {
     id: randomUUID(),
     source: entry.source || "unknown",
     status: entry.status || "info",
-    provider: "openai",
-    model: entry.model || OPENAI_MODEL,
-    configured: Boolean(OPENAI_API_KEY),
+    provider: entry.provider || (OLLAMA_BASE_URL ? "ollama" : "openai"),
+    model: entry.model || (OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL),
+    configured: entry.configured ?? (OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY)),
     duration_ms: entry.duration_ms ?? null,
     message: entry.message || "",
     error: entry.error || null,
@@ -151,7 +169,7 @@ const notifyAiFailure = async (db, source, errorMessage) => {
     await createNotification(
       db,
       `${source} degraded`,
-      `${source} fell back after an OpenAI error: ${errorMessage}`.slice(0, 220),
+      `${source} fell back after an AI provider error: ${errorMessage}`.slice(0, 220),
       "/admin/settings"
     );
   } catch (error) {
@@ -258,34 +276,71 @@ const tryOpenAiText = async ({ system, messages }) => {
   return result.text?.trim();
 };
 
+const tryOllamaText = async ({ system, messages }) => {
+  if (!OLLAMA_BASE_URL) {
+    throw new Error("OLLAMA_BASE_URL is not configured");
+  }
+
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      stream: false,
+      messages: [
+        { role: "system", content: system },
+        ...messages,
+      ],
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || `Ollama request failed with status ${response.status}`);
+  }
+
+  return data?.message?.content?.trim();
+};
+
 const generateResilientAssistantReply = async ({ db, source, system, messages, fallbackBuilder, logLabel }) => {
   const startedAt = Date.now();
   const requestExcerpt = latestUserMessage(messages).slice(0, 240);
 
   try {
-    const openAiReply = await tryOpenAiText({ system, messages });
-    if (!openAiReply) {
-      throw new Error("OpenAI returned an empty response");
+    const provider = OLLAMA_BASE_URL ? "ollama" : "openai";
+    const model = OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL;
+    const reply = OLLAMA_BASE_URL
+      ? await tryOllamaText({ system, messages })
+      : await tryOpenAiText({ system, messages });
+
+    if (!reply) {
+      throw new Error(`${provider} returned an empty response`);
     }
 
     await createAiDebugLog(db, {
       source,
       status: "success",
+      provider,
+      model,
+      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
       duration_ms: Date.now() - startedAt,
-      message: "OpenAI response generated successfully.",
+      message: `${provider} response generated successfully.`,
       request_excerpt: requestExcerpt,
       meta: { message_count: messages.length },
     });
 
-    return openAiReply;
+    return reply;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`${logLabel} fallback engaged`, errorMessage);
     await createAiDebugLog(db, {
       source,
       status: "fallback",
+      provider: OLLAMA_BASE_URL ? "ollama" : "openai",
+      model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
+      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
       duration_ms: Date.now() - startedAt,
-      message: "Fallback response served after OpenAI failure.",
+      message: "Fallback response served after AI provider failure.",
       error: errorMessage,
       request_excerpt: requestExcerpt,
       meta: { message_count: messages.length },
@@ -375,9 +430,9 @@ app.post("/api/functions/ai-debug-status", async (req, res) => {
   const latestFallback = await req.db.collection("ai_debug_logs").findOne({ status: "fallback" }, { sort: { created_at: -1 } });
 
   return res.json({
-    configured: Boolean(OPENAI_API_KEY),
-    provider: "openai",
-    model: OPENAI_MODEL,
+    configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
+    provider: OLLAMA_BASE_URL ? "ollama" : "openai",
+    model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
     latest_success_at: latestSuccess?.created_at || null,
     latest_fallback_at: latestFallback?.created_at || null,
     recent_logs: recentLogs,
@@ -390,7 +445,14 @@ app.post("/api/functions/ai-debug-test", async (req, res) => {
 
   const startedAt = Date.now();
   try {
-    const text = await tryOpenAiText({
+    const provider = OLLAMA_BASE_URL ? "ollama" : "openai";
+    const model = OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL;
+    const text = OLLAMA_BASE_URL
+      ? await tryOllamaText({
+          system: "You are a connectivity test. Reply with exactly: OLLAMA_OK",
+          messages: [{ role: "user", content: "Ping" }],
+        })
+      : await tryOpenAiText({
       system: "You are a connectivity test. Reply with exactly: OPENAI_OK",
       messages: [{ role: "user", content: "Ping" }],
     });
@@ -398,25 +460,32 @@ app.post("/api/functions/ai-debug-test", async (req, res) => {
     await createAiDebugLog(req.db, {
       source: "admin-ai-test",
       status: "success",
+      provider,
+      model,
+      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
       duration_ms: Date.now() - startedAt,
-      message: "Admin OpenAI connectivity test passed.",
+      message: `Admin ${provider} connectivity test passed.`,
       request_excerpt: "Ping",
       meta: { reply: text },
     });
 
-    return res.json({ ok: text === "OPENAI_OK", reply: text, model: OPENAI_MODEL });
+    const expectedReply = OLLAMA_BASE_URL ? "OLLAMA_OK" : "OPENAI_OK";
+    return res.json({ ok: text === expectedReply, reply: text, model, provider });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await createAiDebugLog(req.db, {
       source: "admin-ai-test",
       status: "error",
+      provider: OLLAMA_BASE_URL ? "ollama" : "openai",
+      model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
+      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
       duration_ms: Date.now() - startedAt,
-      message: "Admin OpenAI connectivity test failed.",
+      message: "Admin AI connectivity test failed.",
       error: errorMessage,
       request_excerpt: "Ping",
     });
     await notifyAiFailure(req.db, "admin-ai-test", errorMessage);
-    return res.status(500).json({ ok: false, error: errorMessage, model: OPENAI_MODEL });
+    return res.status(500).json({ ok: false, error: errorMessage, model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL, provider: OLLAMA_BASE_URL ? "ollama" : "openai" });
   }
 });
 

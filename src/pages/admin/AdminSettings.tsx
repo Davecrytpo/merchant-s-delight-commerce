@@ -29,11 +29,11 @@ export default function AdminSettings() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-ai-debug-status"] });
-      toast.success(data?.ok ? "OpenAI test passed" : "OpenAI test returned an unexpected reply");
+      toast.success(data?.ok ? `${data?.provider || "AI"} test passed` : `${data?.provider || "AI"} test returned an unexpected reply`);
     },
     onError: (error: any) => {
       queryClient.invalidateQueries({ queryKey: ["admin-ai-debug-status"] });
-      toast.error(error?.message || "OpenAI test failed");
+      toast.error(error?.message || "AI test failed");
     },
   });
 
@@ -74,7 +74,7 @@ export default function AdminSettings() {
             </div>
             <div>
               <h2 className="font-semibold text-sm md:text-base">AI Debug</h2>
-              <p className="text-xs text-muted-foreground">OpenAI status, live test, and recent assistant logs.</p>
+              <p className="text-xs text-muted-foreground">AI status, live test, and recent assistant logs.</p>
             </div>
           </div>
           <button
@@ -95,7 +95,7 @@ export default function AdminSettings() {
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-xl bg-secondary p-4">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Provider</p>
-                <p className="mt-1 font-semibold">OpenAI</p>
+                <p className="mt-1 font-semibold capitalize">{aiStatus?.provider || "Unknown"}</p>
                 <p className="text-xs text-muted-foreground">{aiStatus?.model || "Unknown model"}</p>
               </div>
               <div className="rounded-xl bg-secondary p-4">
@@ -127,7 +127,7 @@ export default function AdminSettings() {
                 className="gold-gradient text-background font-semibold px-5 py-3 rounded-xl hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
               >
                 {runAiTest.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
-                Run OpenAI Live Test
+                Run Live AI Test
               </button>
               {lastTestReply ? <p className="text-sm text-muted-foreground">Latest test reply: <span className="font-semibold text-foreground">{lastTestReply}</span></p> : null}
             </div>
