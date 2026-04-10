@@ -227,41 +227,47 @@ export default function Returns() {
           </div>
 
           {/* Chat Interface */}
-          <div className="lg:col-span-2 flex flex-col elevated-card rounded-2xl overflow-hidden relative min-h-[500px] lg:min-h-0">
+          <div className="lg:col-span-2 flex flex-col elevated-card rounded-[2rem] overflow-hidden relative min-h-[600px] lg:min-h-0 shadow-2xl border border-border/50">
             {/* Chat Header */}
-            <div className="px-5 py-4 bg-secondary/50 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <Bot className="w-5 h-5" />
+            <div className="px-6 py-5 bg-secondary/30 backdrop-blur-md border-b border-border/50 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20">
+                  <Bot className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold">Return Assistant</h3>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] text-muted-foreground font-medium">Ready to help</span>
+                  <h3 className="text-base font-bold tracking-tight">Return Specialist</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Active Support</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Messages Area */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 no-scrollbar">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 no-scrollbar bg-gradient-to-b from-transparent to-secondary/5">
               {messages.map((m) => (
-                <div key={m.id} className={`flex ${m.type === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`flex gap-3 max-w-[88%] ${m.type === "user" ? "flex-row-reverse" : ""}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${m.type === "bot" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                      {m.type === "bot" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                <div key={m.id} className={`flex ${m.type === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                  <div className={`flex gap-4 max-w-[92%] sm:max-w-[85%] ${m.type === "user" ? "flex-row-reverse" : ""}`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm ${m.type === "bot" ? "bg-primary/10 text-primary border border-primary/20" : "bg-secondary text-muted-foreground border border-border"}`}>
+                      {m.type === "bot" ? <Bot className="w-4.5 h-4.5" /> : <User className="w-4.5 h-4.5" />}
                     </div>
-                    <div className="space-y-3 min-w-0">
+                    <div className="space-y-4 min-w-0">
                       <div
-                        className={`px-4 py-3 sm:px-5 sm:py-4 rounded-2xl text-sm leading-relaxed ${
+                        className={`px-5 py-4 sm:px-6 sm:py-5 rounded-2xl text-[14px] sm:text-[15px] leading-relaxed shadow-sm ${
                           m.type === "user"
-                            ? "bg-primary text-primary-foreground rounded-tr-sm"
-                            : "bg-secondary text-foreground rounded-tl-sm"
+                            ? "bg-primary text-primary-foreground rounded-tr-none font-medium"
+                            : "bg-secondary/40 backdrop-blur-sm text-foreground rounded-tl-none border border-border/50"
                         }`}
                       >
                         {m.type === "bot" ? (
-                          <div className="prose prose-sm max-w-none [&>p]:mb-3 [&>p:last-child]:mb-0 [&>ul]:pl-4 [&>ul]:space-y-1 [&>ol]:pl-4 [&>ol]:space-y-1 [&_strong]:text-primary [&_a]:text-primary [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded">
+                          <div className="prose prose-sm max-w-none 
+                            [&>p]:mb-4 [&>p:last-child]:mb-0 
+                            [&>ul]:pl-5 [&>ul]:space-y-2 [&>ul]:mb-4
+                            [&>ol]:pl-5 [&>ol]:space-y-2 [&>ol]:mb-4
+                            [&_strong]:text-primary [&_strong]:font-bold
+                            [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4
+                            text-foreground/90">
                             <ReactMarkdown>{m.text}</ReactMarkdown>
                           </div>
                         ) : (
@@ -271,12 +277,12 @@ export default function Returns() {
 
                       {/* Suggestions */}
                       {m.suggestions && !isStreaming && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2.5">
                           {m.suggestions.map((s) => (
                             <button
                               key={s}
                               onClick={() => handleSend(s)}
-                              className="text-[11px] font-bold px-4 py-2 rounded-xl border border-border hover:border-primary hover:text-primary transition-all bg-card"
+                              className="text-[11px] font-black uppercase tracking-wider px-5 py-2.5 rounded-xl border border-border bg-card hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-300 shadow-sm active:scale-95"
                             >
                               {s}
                             </button>
@@ -289,12 +295,16 @@ export default function Returns() {
               ))}
               {isStreaming && messages[messages.length - 1]?.type !== "bot" && (
                 <div className="flex justify-start">
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                      <Bot className="w-4 h-4" />
+                  <div className="flex gap-4">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                      <Bot className="w-4.5 h-4.5" />
                     </div>
-                    <div className="bg-secondary px-5 py-4 rounded-2xl rounded-tl-sm">
-                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <div className="bg-secondary/40 backdrop-blur-sm px-6 py-5 rounded-2xl rounded-tl-none border border-border/50 shadow-sm">
+                      <div className="flex gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -302,25 +312,27 @@ export default function Returns() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="p-4 sm:p-6 bg-secondary/30 border-t border-border">
-              <div className="relative">
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Enter order number or ask a question..."
-                  disabled={isStreaming}
-                  className="w-full bg-card border border-border rounded-2xl pl-4 sm:pl-5 pr-14 py-3.5 sm:py-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50"
-                />
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="p-6 sm:p-8 bg-background border-t border-border/50">
+              <div className="relative flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Enter order number (ORD-XXXX) or ask a question..."
+                    disabled={isStreaming}
+                    className="w-full bg-secondary/30 border border-border rounded-[1.25rem] pl-6 pr-4 py-4.5 text-sm sm:text-base outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all duration-300 disabled:opacity-50 font-medium placeholder:text-muted-foreground/50"
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={!input.trim() || isStreaming}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 copper-gradient text-primary-foreground rounded-xl flex items-center justify-center disabled:opacity-50 disabled:grayscale transition-all active:scale-95"
+                  className="w-14 h-14 sm:w-16 sm:h-16 copper-gradient text-primary-foreground rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-primary/20 disabled:opacity-50 disabled:grayscale transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 active:scale-95 active:translate-y-0"
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-6 h-6" />
                 </button>
               </div>
-              <p className="text-[10px] text-center text-muted-foreground mt-3 font-medium tracking-wide">
-                Powered by Merchant's Delight AI Assistant • Secure & Encrypted
+              <p className="text-[10px] text-center text-muted-foreground/50 mt-5 font-black uppercase tracking-[0.25em]">
+                Secure Return Protocol • AI Verified
               </p>
             </form>
           </div>
