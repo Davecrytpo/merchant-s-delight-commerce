@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
@@ -8,10 +7,6 @@ import { MongoClient } from "mongodb";
 import Stripe from "stripe";
 import { randomUUID } from "node:crypto";
 import { buildProductSeed, buildShippingSeed, defaultCategories } from "./seed-data.js";
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
-const aiModel = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
 const PORT = Number(process.env.PORT || 4000);
 const MONGODB_URI = process.env.MONGODB_URI || "";
@@ -400,48 +395,23 @@ app.post("/api/db/:table/query", async (req, res) => {
 
 app.post("/api/functions/ai-assistant", async (req, res) => {
   const messages = req.body?.messages || [];
-  if (!aiModel) return res.json({ reply: "AI services are not configured at the moment. Please check back later!" });
+  const last = String(messages[messages.length - 1]?.content || "").toLowerCase();
+  const products = await db.collection("products").find({}).limit(6).toArray();
 
-  try {
-    const products = await db.collection("products").find({}).limit(50).toArray();
-    const categories = await db.collection("categories").find({}).toArray();
-
-    const systemPrompt = `You are the Professional Shopping Assistant for 'Merchant's Delight', a premium footwear store. 
-Your goal is to help customers find the perfect shoes, provide expert advice on sizing, style, and performance, and ensure a world-class shopping experience.
-Be polite, helpful, and professional. Use markdown for formatting.
-
-AVAILABLE PRODUCTS:
-${products.map(p => `- ${p.name} ($${p.price}): ${p.description} (Category: ${p.category}, Tags: ${p.tags?.join(", ")})`).join("\n")}
-
-AVAILABLE CATEGORIES:
-${categories.map(c => `- ${c.name} (${c.slug})`).join("\n")}
-
-Guidelines:
-1. Always recommend specific products from the list above when relevant.
-2. If asked about trending items, mention products that are new or highly rated.
-3. Be concise but helpful.
-4. If a product isn't in our catalog, suggest the closest alternative we have.
-5. Do not make up products that are not in the list above.`;
-
-    const chat = aiModel.startChat({
-      history: messages.slice(0, -1).map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: { maxOutputTokens: 500 },
-    });
-
-    const lastMessage = messages[messages.length - 1]?.content || "Hello!";
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: lastMessage }
-    ]);
-    const response = await result.response;
-    return res.json({ reply: response.text() });
-  } catch (error) {
-    console.error("AI Assistant Error:", error);
-    return res.json({ reply: "I'm having a bit of trouble finding that right now. Could you try rephrasing your request?" });
+  let reply = "I can help with product discovery, sizing, and trending picks.";
+  if (last.includes("trending")) {
+    const trending = products.filter((product) => product.is_trending).slice(0, 3);
+    reply = trending.length ? `Trending picks right now: ${trending.map((product) => product.name).join(", ")}.` : "I do not have trending products loaded yet.";
+  } else if (last.includes("running")) {
+    const runningCategory = await db.collection("categories").findOne({ slug: "running" });
+    const runningProducts = runningCategory ? await db.collection("products").find({ category_id: runningCategory.id }).limit(3).toArray() : [];
+    reply = runningProducts.length ? `For running, start with ${runningProducts.map((product) => product.name).join(", ")}.` : "I do not have running products loaded yet.";
+  } else if (last.includes("under $150")) {
+    const affordable = await db.collection("products").find({ price: { $lte: 150 } }).limit(4).toArray();
+    reply = affordable.length ? `Options under $150: ${affordable.map((product) => `${product.name} ($${product.price})`).join(", ")}.` : "I do not have products under $150 loaded yet.";
   }
+
+  return res.json({ reply });
 });
 
 app.post("/api/functions/return-assistant", async (req, res) => {
@@ -469,44 +439,19 @@ app.post("/api/functions/return-assistant", async (req, res) => {
     return res.json({ returns: await db.collection("return_requests").find(query).toArray() });
   }
 
-  if (!aiModel) return res.json({ reply: "I'm sorry, I'm offline at the moment. Please try again later!" });
-
-  try {
-    const systemPrompt = `You are the Professional Return Assistant for 'Merchant's Delight'. 
-Your goal is to help customers with return eligibility, status, and processing. 
-Be empathetic, clear, and professional. Use markdown for formatting.
-
-RETURN POLICY:
-1. Returns are accepted within 14 days of delivery.
-2. Items must be in original condition and packaging.
-3. Proof of purchase (Order Number) is required.
-4. Refunds are processed within 5-7 business days of receiving the return.
-
-Guidelines:
-1. Be empathetic if an order is not eligible.
-2. If the user provides an order number, explain that I am checking it (the system context will be injected if found).
-3. If SYSTEM CONTEXT is provided in the message history, use that data to give a specific and accurate answer.
-4. Always prioritize clarity and helpfulness.`;
-
-    const chat = aiModel.startChat({
-      history: (messages || []).slice(0, -1).map(m => ({
-        role: m.role === "assistant" ? "model" : m.role === "system" ? "user" : "user",
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: { maxOutputTokens: 500 },
-    });
-
-    const lastMessage = messages?.[messages?.length - 1]?.content || "Hello!";
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: lastMessage }
-    ]);
-    const response = await result.response;
-    return res.json({ reply: response.text() });
-  } catch (error) {
-    console.error("Return Assistant Error:", error);
-    return res.json({ reply: "I encountered an error while processing your request. Please try again in a moment." });
+  const text = String(messages?.[messages.length - 1]?.content || "");
+  const orderMatch = text.toUpperCase().match(/ORD-[A-Z0-9]+/);
+  if (text.toLowerCase().includes("return policy")) {
+    return res.json({ reply: "Returns are accepted within 14 days of delivery for delivered orders. Include your order number and reason, and I will guide you through the next step." });
   }
+  if (text.toLowerCase().includes("start a return") || text.toLowerCase().includes("return an item")) {
+    return res.json({ reply: "Send your order number in the format `ORD-XXXX` and I will check eligibility. Once confirmed, I can help you create the return request." });
+  }
+  if (orderMatch) {
+    const order = await db.collection("orders").findOne({ order_number: orderMatch[0] });
+    return res.json({ reply: order ? `I found order ${orderMatch[0]} with status ${order.status}. If it was delivered within the last 14 days, it can be returned.` : `I could not find order ${orderMatch[0]}. Please double-check the number.` });
+  }
+  return res.json({ reply: "I can help with return eligibility, return status, and next steps. Send an order number like `ORD-ABC123` or ask about the return policy." });
 });
 
 app.post("/api/functions/return-notification", async (req, res) => {
