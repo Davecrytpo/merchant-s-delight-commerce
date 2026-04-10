@@ -43,6 +43,18 @@ export interface Order {
   shippingAddress: string;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  image: string;
+  author: string;
+  date: string;
+  category: string;
+}
+
 export const SHOE_IMAGES = [
   "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
   "https://images.unsplash.com/photo-1552346154-21d32810aba3?w=800&q=80",
@@ -124,4 +136,40 @@ export const categories = [
   { name: "Training", slug: "training", count: 1, image: SHOE_IMAGES[6] },
   { name: "Luxury", slug: "luxury", count: 1, image: SHOE_IMAGES[8] },
   { name: "Office", slug: "office", count: 1, image: SHOE_IMAGES[10] },
+];
+
+export const blogPosts: BlogPost[] = [
+  {
+    id: "b1", title: "The Art of the Perfect Stride: Elite Running Tips", slug: "art-perfect-stride-elite-running",
+    excerpt: "Discover the biomechanics and training protocols used by podium finishers to maximize efficiency.",
+    content: "Performance running is more than just speed; it's about the synergy between technology and technique. In this guide, we explore how carbon-fiber propulsion and advanced midsole foams are changing the landscape of competitive marathons...",
+    image: SHOE_IMAGES[0], author: "Marcus Thorne", date: "2026-03-15", category: "Performance",
+  },
+  {
+    id: "b2", title: "Handcrafted Luxury: Inside our Italian Workshop", slug: "handcrafted-luxury-italian-workshop",
+    excerpt: "A deep dive into the heritage techniques and premium materials that define our signature leather collection.",
+    content: "Every pair of Merchant's Delight luxury boots begins its journey in the heart of Italy. Our artisans use traditional Goodyear welt construction, a process that ensures durability and comfort that lasts a lifetime...",
+    image: SHOE_IMAGES[8], author: "Elena Rossi", date: "2026-03-10", category: "Craftsmanship",
+  },
+  {
+    id: "b3", title: "Conquering the Elements: The Evolution of All-Terrain Gear", slug: "conquering-elements-evolution-all-terrain",
+    excerpt: "How modern waterproofing and high-traction outsoles are enabling hikers to push further than ever before.",
+    content: "When the trail gets tough, your gear shouldn't be what holds you back. We analyze the science behind GORE-TEX membranes and Vibram outsoles to show you why quality matters in the wild...",
+    image: SHOE_IMAGES[4], author: "David Brooks", date: "2026-03-05", category: "Adventure",
+  },
+];
+
+export const sampleOrders: Order[] = [
+  {
+    id: "ORD-2026-X01", items: [], status: "delivered", total: 418,
+    createdAt: "2026-03-20", trackingNumber: "TRK-Elite-001", shippingAddress: "123 Fifth Avenue, New York, NY 10003",
+  },
+  {
+    id: "ORD-2026-X02", items: [], status: "shipped", total: 249,
+    createdAt: "2026-03-24", trackingNumber: "TRK-Elite-002", shippingAddress: "456 Bel Air Rd, Los Angeles, CA 90077",
+  },
+  {
+    id: "ORD-2026-X03", items: [], status: "processing", total: 169,
+    createdAt: "2026-03-26", shippingAddress: "789 Michigan Ave, Chicago, IL 60611",
+  },
 ];
