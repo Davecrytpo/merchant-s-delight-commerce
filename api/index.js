@@ -237,6 +237,184 @@ const keywordScore = (text, keywords = []) => {
   return keywords.reduce((score, keyword) => (haystack.includes(String(keyword || "").toLowerCase()) ? score + 1 : score), 0);
 };
 
+const formatUsd = (value) => `$${Number(value || 0)}`;
+const normalizeText = (value = "") => String(value || "").toLowerCase();
+const extractBudget = (text = "") => {
+  const match = String(text).match(/\$?\s*(\d{2,4})/);
+  return match ? Number(match[1]) : null;
+};
+const extractOrderNumber = (text = "") => String(text).toUpperCase().match(/ORD-[A-Z0-9]+/)?.[0] || null;
+const extractReturnRequestId = (text = "") => String(text).toUpperCase().match(/RET-[A-Z0-9]+/)?.[0] || null;
+const extractEmail = (text = "") => String(text).match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0]?.toLowerCase() || null;
+
+const fitGuidanceByCategory = {
+  running: "Runs best with a secure performance fit. If you are between sizes, most shoppers size up by half for longer sessions.",
+  training: "Should feel secure through the midfoot with enough forefoot room for movement.",
+  hiking: "Should feel locked at the heel with a little extra toe room for descents.",
+  casual: "Usually works true to size with a more relaxed everyday fit.",
+  lifestyle: "Usually works true to size for casual wear.",
+  luxury: "Should start structured, then soften slightly with wear.",
+  office: "Should feel snug but not tight across the forefoot and heel.",
+};
+
+const buildProductContext = (products = [], categories = [], variants = []) => {
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const variantsByProductId = new Map();
+
+  for (const variant of variants) {
+    const bucket = variantsByProductId.get(variant.product_id) || [];
+    bucket.push(variant);
+    variantsByProductId.set(variant.product_id, bucket);
+  }
+
+  return products.map((product) => {
+    const category = categoriesById.get(product.category_id) || null;
+    const productVariants = variantsByProductId.get(product.id) || [];
+    const sizes = [...new Set(productVariants.map((variant) => variant.size).filter(Boolean))];
+    const colors = [...new Set(productVariants.map((variant) => variant.color).filter(Boolean))];
+    const inStock = productVariants.some((variant) => Number(variant.stock || 0) > 0);
+
+    return {
+      ...product,
+      category_name: category?.name || product.category || "Uncategorized",
+      category_slug: category?.slug || normalizeText(product.category || ""),
+      category_description: category?.description || "",
+      variants: productVariants,
+      sizes,
+      colors,
+      in_stock: inStock,
+    };
+  });
+};
+
+const rankProductsForPrompt = (prompt, products = []) => {
+  const normalizedPrompt = normalizeText(prompt);
+  const budget = extractBudget(prompt);
+
+  return [...products]
+    .map((product) => {
+      let score = keywordScore(normalizedPrompt, [
+        product.name,
+        product.slug,
+        product.description,
+        product.long_description,
+        product.category_name,
+        product.category_slug,
+        product.brand,
+        ...(product.sizes || []),
+        ...(product.colors || []),
+      ]);
+
+      if (/everyday|daily|casual|street|lifestyle/.test(normalizedPrompt) && ["casual", "lifestyle"].includes(product.category_slug)) score += 4;
+      if (/run|running|jog|marathon|speed/.test(normalizedPrompt) && product.category_slug === "running") score += 4;
+      if (/gym|train|training|workout|cross/.test(normalizedPrompt) && product.category_slug === "training") score += 4;
+      if (/trail|hike|outdoor|water/.test(normalizedPrompt) && product.category_slug === "hiking") score += 4;
+      if (/boot|leather|luxury|premium/.test(normalizedPrompt) && product.category_slug === "luxury") score += 4;
+      if (/office|formal|dress|work/.test(normalizedPrompt) && product.category_slug === "office") score += 4;
+      if (budget !== null && Number(product.price || 0) <= budget) score += 2;
+      if (product.is_trending) score += 1;
+      if (product.is_featured) score += 1;
+      if (product.in_stock) score += 1;
+
+      return { product, score };
+    })
+    .sort((a, b) => b.score - a.score || Number(b.product.rating || 0) - Number(a.product.rating || 0));
+};
+
+const buildShoppingDirectResponse = ({ messages, products, categories }) => {
+  const prompt = latestUserMessage(messages);
+  if (!prompt || !products.length) return null;
+
+  const normalizedPrompt = normalizeText(prompt);
+  const rankedProducts = rankProductsForPrompt(prompt, products);
+  const topMatches = rankedProducts.filter((entry) => entry.score > 0).slice(0, 3).map((entry) => entry.product);
+  const primary = topMatches[0] || rankedProducts[0]?.product || null;
+  const budget = extractBudget(prompt);
+
+  if (/\b(size|sizing|fit|size guide)\b/.test(normalizedPrompt)) {
+    if (!primary) return "Tell me the product name and your usual shoe size, and I will give a precise fit recommendation.";
+    const sizes = primary.sizes.length ? primary.sizes.join(", ") : "not listed";
+    const fitNote = fitGuidanceByCategory[primary.category_slug] || "This style should fit true to size for most shoppers.";
+    return `For **${primary.name}**, the available sizes I can see are: **${sizes}**.\n\nFit note: ${fitNote}\n\nIf you tell me your usual size and whether you prefer a snug or relaxed fit, I can recommend the best size to try first.`;
+  }
+
+  if (/\b(category|categories|collection|types)\b/.test(normalizedPrompt) && categories.length) {
+    return `We currently carry ${categories.map((category) => `**${category.name}**`).join(", ")}. Tell me your use case or budget and I will narrow it to the best option.`;
+  }
+
+  if (/\b(trend|trending|popular|best seller|bestsellers|recommend|suggest|best)\b/.test(normalizedPrompt) || budget !== null) {
+    const filtered = topMatches.length
+      ? topMatches.filter((product) => budget === null || Number(product.price || 0) <= budget)
+      : products.filter((product) => budget === null || Number(product.price || 0) <= budget).slice(0, 3);
+    const choices = (filtered.length ? filtered : topMatches).slice(0, 3);
+
+    if (!choices.length) {
+      return `I do not see an in-range option under ${formatUsd(budget)} right now. If you want, I can suggest the closest match above that budget.`;
+    }
+
+    if (choices.length === 1) {
+      const product = choices[0];
+      return `My best match is **${product.name}** at **${formatUsd(product.price)}**.\n\nWhy: ${product.description}\nCategory: ${product.category_name}\nAvailable sizes: ${product.sizes.join(", ") || "check product page"}.\n\nIf you want, I can also give you a second option for comparison.`;
+    }
+
+    return choices
+      .map((product, index) => `${index + 1}. **${product.name}** - ${formatUsd(product.price)}. ${product.description}`)
+      .join("\n");
+  }
+
+  return null;
+};
+
+const buildOrderLookupSummary = (order) => {
+  if (!order) return null;
+  const deliveredAt = order.delivered_at ? new Date(order.delivered_at) : null;
+  const daysSinceDelivery = deliveredAt ? Math.floor((Date.now() - deliveredAt.getTime()) / 86400000) : null;
+  const eligible = order.status === "delivered" && daysSinceDelivery !== null && daysSinceDelivery <= 14;
+
+  return {
+    order_number: order.order_number,
+    status: order.status,
+    delivered_at: order.delivered_at || null,
+    days_since_delivery: daysSinceDelivery,
+    eligible,
+    days_remaining: eligible ? 14 - daysSinceDelivery : 0,
+  };
+};
+
+const buildReturnDirectResponse = ({ prompt, orderSummary, returnRequest, needsVerification, orderMissing }) => {
+  const normalizedPrompt = normalizeText(prompt);
+
+  if (returnRequest) {
+    return `Return **${returnRequest.return_request_id}** is currently **${returnRequest.status}**.\n\nOrder: **${returnRequest.order_number}**\nResolution: **${returnRequest.resolution || "pending review"}**\nReason: **${returnRequest.reason || "not provided"}**.`;
+  }
+
+  if (needsVerification) {
+    return "I found that order, but I need the email used on the order before I can confirm its status or return eligibility.";
+  }
+
+  if (orderMissing) {
+    return "I could not find an order with that number. Please recheck the order number, or send the order email as well.";
+  }
+
+  if (orderSummary) {
+    if (orderSummary.status !== "delivered") {
+      return `Order **${orderSummary.order_number}** exists, but its current status is **${orderSummary.status}**.\n\nA return can only start after delivery is confirmed.`;
+    }
+
+    if (orderSummary.eligible) {
+      return `Order **${orderSummary.order_number}** was delivered and is currently **eligible** for return.\n\nYou have **${orderSummary.days_remaining} day(s)** left in the 14-day return window.`;
+    }
+
+    return `Order **${orderSummary.order_number}** was delivered, but it is **outside** the 14-day return window, so it is not eligible for a standard return.`;
+  }
+
+  if (/\b(policy|window|eligible|eligibility|days)\b/.test(normalizedPrompt)) {
+    return "Our return policy is **14 days from delivery** for items returned in original condition. To check a specific order, send the **order number** and, if you are not signed in, the **order email**.";
+  }
+
+  return null;
+};
+
 const buildMainAssistantFallback = ({ messages, products, categories }) => {
   const prompt = latestUserMessage(messages);
   const normalizedPrompt = prompt.toLowerCase();
@@ -264,7 +442,7 @@ const buildMainAssistantFallback = ({ messages, products, categories }) => {
   );
 
   if (/(trend|popular|best|recommend|suggest)/i.test(prompt)) {
-    return `Here are strong options from our current collection:\n${showcase.join("\n")}\n\nTell me your preferred use case, size, budget, or style direction and I will narrow this down further.`;
+    return `Best options right now:\n${showcase.join("\n")}\n\nTell me your size, budget, or use case and I will narrow it down.`;
   }
 
   if (/(under|budget|\$|price|afford)/i.test(prompt)) {
@@ -273,7 +451,7 @@ const buildMainAssistantFallback = ({ messages, products, categories }) => {
       ? products.filter((product) => Number(product.price || 0) <= budget).slice(0, 3)
       : [];
     if (withinBudget.length) {
-      return `Here are options within your stated budget:\n${withinBudget
+      return `Options within your budget:\n${withinBudget
         .map((product) => `- **${product.name}** ($${product.price}): ${product.description || "Premium footwear option."}`)
         .join("\n")}`;
     }
@@ -285,9 +463,7 @@ const buildMainAssistantFallback = ({ messages, products, categories }) => {
       .join("\n")}`;
   }
 
-  return `I can help you shop our collection. Based on your message, these are the best starting points:\n${showcase.join(
-    "\n"
-  )}\n\nIf you tell me whether you want something for running, everyday wear, dress styling, or a price range, I can make this much more precise.`;
+  return `Best starting points:\n${showcase.join("\n")}\n\nTell me whether you want running, everyday, trail, office, or a budget target.`;
 };
 
 const buildReturnAssistantFallback = ({ messages }) => {
@@ -870,30 +1046,50 @@ app.post("/api/functions/ai-assistant", async (req, res) => {
   try {
     let products = [];
     let categories = [];
+    let variants = [];
     try {
-      [products, categories] = await Promise.all([
+      [products, categories, variants] = await Promise.all([
         req.db.collection("products").find({}).toArray(),
         req.db.collection("categories").find({}).toArray(),
+        req.db.collection("product_variants").find({}).toArray(),
       ]);
     } catch (catalogError) {
       console.error("AI Concierge catalog lookup failed:", catalogError);
     }
 
-    const system = `You are the Lead Concierge for Merchant's Delight, a premier high-end footwear destination. 
-Your tone is sophisticated, knowledgeable, and proactive. You provide expert styling advice, technical performance insights, and impeccable service.
-Use markdown for formatting. Always prioritize our collection.
+    const productContext = buildProductContext(products, categories, variants);
+    const directReply = buildShoppingDirectResponse({ messages, products: productContext, categories });
+    if (directReply) {
+      await createAiDebugLog(req.db, {
+        source: "shopping-assistant",
+        status: "success",
+        provider: "project-logic",
+        model: "catalog-rules",
+        configured: true,
+        duration_ms: 0,
+        message: "Direct catalog-grounded shopping reply served.",
+        request_excerpt: latestUserMessage(messages).slice(0, 240),
+        meta: { mode: "direct", message_count: messages.length },
+      });
+      return res.json({ reply: directReply });
+    }
 
-OUR CURRENT COLLECTION:
-${products.map(p => `- ${p.name} ($${p.price}): ${p.description} (${p.category})`).join("\n")}
+    const compactCatalog = productContext
+      .slice(0, 24)
+      .map((product) => `- ${product.name} | ${product.category_name} | ${formatUsd(product.price)} | sizes: ${product.sizes.join(", ") || "n/a"} | ${product.description}`)
+      .join("\n");
 
-OUR CATEGORIES:
-${categories.map(c => `- ${c.name}: ${c.description}`).join("\n")}
+    const system = `You are the shopping assistant for Merchant's Delight.
+Answer from the catalog provided below only. Do not invent products, features, sizes, policies, or prices.
+Keep answers concise, direct, and useful.
+Default to 2 short paragraphs or a short numbered list.
+Do not give long essays.
+If the user asks for recommendations, lead with the single best option and at most two alternatives.
+If the user asks about sizing, use only the sizes listed in the catalog and give a practical fit note.
+If the answer is not fully knowable from the catalog, say that plainly and ask one short follow-up question.
 
-GUIDELINES:
-1. Provide specific, tailored recommendations based on the user's needs.
-2. Discuss footwear with technical authority (e.g., cushioning tech, leather quality, traction).
-3. If a request is outside our catalog, suggest the most prestigious alternative we carry.
-4. Maintain the aura of a luxury boutique.`;
+CATALOG:
+${compactCatalog}`;
 
     const reply = await generateResilientAssistantReply({
       db: req.db,
@@ -901,13 +1097,13 @@ GUIDELINES:
       system,
       messages,
       logLabel: "AI Concierge Error",
-      fallbackBuilder: () => buildMainAssistantFallback({ messages, products, categories }),
+      fallbackBuilder: () => buildMainAssistantFallback({ messages, products: productContext, categories }),
     });
 
     return res.json({ reply });
   } catch (error) {
     console.error("AI Concierge Error:", error);
-    return res.json({ reply: "I can help you shop our collection, but I could not load the latest concierge response just now. Please try your request again." });
+    return res.json({ reply: "I can help with product recommendations, sizing, and comparisons, but I could not load the latest shopping response just now. Please try again." });
   }
 });
 
@@ -961,15 +1157,92 @@ app.post("/api/functions/return-assistant", async (req, res) => {
 
   try {
     const normalizedMessages = normalizeAiMessages(messages || []);
+    const prompt = latestUserMessage(normalizedMessages);
+    const orderNumber = extractOrderNumber(prompt);
+    const returnRequestId = extractReturnRequestId(prompt);
+    const email = extractEmail(prompt);
+
+    if (returnRequestId) {
+      const returnQuery = req.user ? { return_request_id: returnRequestId, user_id: req.user.id } : { return_request_id: returnRequestId };
+      const returnRequest = await req.db.collection("return_requests").findOne(returnQuery);
+      const directReply = buildReturnDirectResponse({ prompt, returnRequest });
+      if (directReply) {
+        await createAiDebugLog(req.db, {
+          source: "return-assistant",
+          status: "success",
+          provider: "project-logic",
+          model: "returns-rules",
+          configured: true,
+          duration_ms: 0,
+          message: "Direct return status reply served.",
+          request_excerpt: prompt.slice(0, 240),
+          meta: { mode: "direct", return_request_id: returnRequestId },
+        });
+        return res.json({ reply: directReply });
+      }
+    }
+
+    if (orderNumber) {
+      const order = await req.db.collection("orders").findOne({ order_number: orderNumber });
+      const orderEmail = order?.shipping_address?.email || order?.email || null;
+      const guestNeedsEmailVerification = Boolean(order && !req.user && orderEmail && !email);
+      const needsVerification = Boolean(order && !req.user && orderEmail && (guestNeedsEmailVerification || email !== String(orderEmail).toLowerCase()));
+      const orderSummary = order && (req.user?.id === order.user_id || (!req.user && orderEmail && email === String(orderEmail).toLowerCase()))
+        ? buildOrderLookupSummary(order)
+        : null;
+
+      const directReply = buildReturnDirectResponse({
+        prompt,
+        orderSummary,
+        needsVerification,
+        orderMissing: !order,
+      });
+
+      if (directReply) {
+        await createAiDebugLog(req.db, {
+          source: "return-assistant",
+          status: "success",
+          provider: "project-logic",
+          model: "returns-rules",
+          configured: true,
+          duration_ms: 0,
+          message: "Direct order-aware return reply served.",
+          request_excerpt: prompt.slice(0, 240),
+          meta: { mode: "direct", order_number: orderNumber, order_status: order?.status || null },
+        });
+        return res.json({ reply: directReply });
+      }
+    }
+
+    const policyReply = buildReturnDirectResponse({ prompt });
+    if (policyReply) {
+      await createAiDebugLog(req.db, {
+        source: "return-assistant",
+        status: "success",
+        provider: "project-logic",
+        model: "returns-rules",
+        configured: true,
+        duration_ms: 0,
+        message: "Direct return policy reply served.",
+        request_excerpt: prompt.slice(0, 240),
+        meta: { mode: "direct", kind: "policy" },
+      });
+      return res.json({ reply: policyReply });
+    }
+
     const system = `You are the Senior Return Specialist at Merchant's Delight. 
-You handle return inquiries with empathy, precision, and a focus on high-touch service.
+You handle return inquiries with precision and professionalism.
+Keep answers concise and operational.
+Never guess order status, delivery status, return eligibility, or return status.
+If the user has not given an order number or return request ID, ask for it briefly.
 Our policy is strictly 14 days from delivery for original-condition items.
 
 GUIDELINES:
-1. When a user provides an order number, wait for the system to inject context or acknowledge you are checking.
-2. If the user mentions return policy, explain our 14-day window for delivered items.
-3. If an order is ineligible, be firm yet graceful and offer manual support options.
-4. Use markdown for a clean, professional presentation.`;
+1. Use no more than 120 words unless the user explicitly asks for more detail.
+2. If the user mentions return policy, explain the 14-day window for delivered items.
+3. If an order is ineligible, say why in one sentence.
+4. If exact verification data is missing, ask for the missing order number or return request ID.
+5. Use markdown only when it improves clarity.`;
 
     const reply = await generateResilientAssistantReply({
       db: req.db,
