@@ -1,3 +1,5 @@
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
@@ -395,23 +397,35 @@ app.post("/api/db/:table/query", async (req, res) => {
 
 app.post("/api/functions/ai-assistant", async (req, res) => {
   const messages = req.body?.messages || [];
-  const last = String(messages[messages.length - 1]?.content || "").toLowerCase();
-  const products = await db.collection("products").find({}).limit(6).toArray();
+  try {
+    const products = await db.collection("products").find({}).toArray();
+    const categories = await db.collection("categories").find({}).toArray();
 
-  let reply = "I can help with product discovery, sizing, and trending picks.";
-  if (last.includes("trending")) {
-    const trending = products.filter((product) => product.is_trending).slice(0, 3);
-    reply = trending.length ? `Trending picks right now: ${trending.map((product) => product.name).join(", ")}.` : "I do not have trending products loaded yet.";
-  } else if (last.includes("running")) {
-    const runningCategory = await db.collection("categories").findOne({ slug: "running" });
-    const runningProducts = runningCategory ? await db.collection("products").find({ category_id: runningCategory.id }).limit(3).toArray() : [];
-    reply = runningProducts.length ? `For running, start with ${runningProducts.map((product) => product.name).join(", ")}.` : "I do not have running products loaded yet.";
-  } else if (last.includes("under $150")) {
-    const affordable = await db.collection("products").find({ price: { $lte: 150 } }).limit(4).toArray();
-    reply = affordable.length ? `Options under $150: ${affordable.map((product) => `${product.name} ($${product.price})`).join(", ")}.` : "I do not have products under $150 loaded yet.";
+    const { text } = await generateText({
+      model: openai("gpt-4o"),
+      system: `You are the Lead Concierge for Merchant's Delight, a premier high-end footwear destination. 
+Your tone is sophisticated, knowledgeable, and proactive. You provide expert styling advice, technical performance insights, and impeccable service.
+Use markdown for formatting. Always prioritize our collection.
+
+OUR CURRENT COLLECTION:
+${products.map(p => `- ${p.name} ($${p.price}): ${p.description} (${p.category})`).join("\n")}
+
+OUR CATEGORIES:
+${categories.map(c => `- ${c.name}: ${c.description}`).join("\n")}
+
+GUIDELINES:
+1. Provide specific, tailored recommendations based on the user's needs.
+2. Discuss footwear with technical authority (e.g., cushioning tech, leather quality, traction).
+3. If a request is outside our catalog, suggest the most prestigious alternative we carry.
+4. Maintain the aura of a luxury boutique.`,
+      messages: (messages || []).map(m => ({ role: m.role, content: m.content })),
+    });
+
+    return res.json({ reply: text });
+  } catch (error) {
+    console.error("AI Concierge Error:", error);
+    return res.json({ reply: "I apologize, but I am momentarily unable to assist. Please try again or contact our boutique directly." });
   }
-
-  return res.json({ reply });
 });
 
 app.post("/api/functions/return-assistant", async (req, res) => {
@@ -420,17 +434,23 @@ app.post("/api/functions/return-assistant", async (req, res) => {
   if (action === "lookup_order") {
     const orderNumber = String(payload?.order_number || "").toUpperCase();
     const order = await db.collection("orders").findOne({ order_number: orderNumber });
-    if (!order) return res.json({ found: false, message: "Order not found." });
+    if (!order) return res.json({ found: false, message: "Our records do not indicate an order with that number." });
 
     const orderEmail = order.shipping_address?.email || order.email || null;
     if (!payload?.user_id && payload?.email && orderEmail && payload.email.toLowerCase() !== String(orderEmail).toLowerCase()) {
-      return res.json({ found: true, needs_verification: true, message: "Email does not match this order." });
+      return res.json({ found: true, needs_verification: true, message: "The email provided does not match our records for this order." });
     }
 
     const deliveredAt = order.delivered_at ? new Date(order.delivered_at) : null;
     const daysSinceDelivery = deliveredAt ? Math.floor((Date.now() - deliveredAt.getTime()) / 86400000) : null;
     const eligible = order.status === "delivered" && daysSinceDelivery !== null && daysSinceDelivery <= 14;
-    return res.json({ found: true, order, eligible, days_remaining: eligible ? 14 - daysSinceDelivery : 0, reason: eligible ? "Order is eligible for return." : "Order is not currently eligible for return." });
+    return res.json({ 
+      found: true, 
+      order, 
+      eligible, 
+      days_remaining: eligible ? 14 - daysSinceDelivery : 0, 
+      reason: eligible ? "This order is currently eligible for a professional return or exchange." : "This order has exceeded our 14-day premium return window." 
+    });
   }
 
   if (action === "check_return_status") {
@@ -439,19 +459,26 @@ app.post("/api/functions/return-assistant", async (req, res) => {
     return res.json({ returns: await db.collection("return_requests").find(query).toArray() });
   }
 
-  const text = String(messages?.[messages.length - 1]?.content || "");
-  const orderMatch = text.toUpperCase().match(/ORD-[A-Z0-9]+/);
-  if (text.toLowerCase().includes("return policy")) {
-    return res.json({ reply: "Returns are accepted within 14 days of delivery for delivered orders. Include your order number and reason, and I will guide you through the next step." });
+  try {
+    const { text } = await generateText({
+      model: openai("gpt-4o"),
+      system: `You are the Senior Return Specialist at Merchant's Delight. 
+You handle return inquiries with empathy, precision, and a focus on high-touch service.
+Our policy is strictly 14 days from delivery for original-condition items.
+
+GUIDELINES:
+1. When a user provides an order number, wait for the system to inject context or acknowledge you are checking.
+2. If the user mentions return policy, explain our 14-day window for delivered items.
+3. If an order is ineligible, be firm yet graceful and offer manual support options.
+4. Use markdown for a clean, professional presentation.`,
+      messages: (messages || []).map(m => ({ role: m.role, content: m.content })),
+    });
+
+    return res.json({ reply: text });
+  } catch (error) {
+    console.error("Return AI Error:", error);
+    return res.json({ reply: "I am having difficulty accessing our return records. Please try again shortly." });
   }
-  if (text.toLowerCase().includes("start a return") || text.toLowerCase().includes("return an item")) {
-    return res.json({ reply: "Send your order number in the format `ORD-XXXX` and I will check eligibility. Once confirmed, I can help you create the return request." });
-  }
-  if (orderMatch) {
-    const order = await db.collection("orders").findOne({ order_number: orderMatch[0] });
-    return res.json({ reply: order ? `I found order ${orderMatch[0]} with status ${order.status}. If it was delivered within the last 14 days, it can be returned.` : `I could not find order ${orderMatch[0]}. Please double-check the number.` });
-  }
-  return res.json({ reply: "I can help with return eligibility, return status, and next steps. Send an order number like `ORD-ABC123` or ask about the return policy." });
 });
 
 app.post("/api/functions/return-notification", async (req, res) => {
