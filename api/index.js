@@ -1,6 +1,5 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import bcrypt from "bcryptjs";
@@ -10,7 +9,6 @@ import Stripe from "stripe";
 import { randomUUID } from "node:crypto";
 import { buildProductSeed, buildShippingSeed, defaultCategories } from "./seed-data.js";
 
-const PORT = Number(process.env.PORT || 4000);
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const DB_NAME = process.env.MONGODB_DB_NAME || "merchants_delight";
 const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
@@ -23,10 +21,25 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "2mb" }));
 
-const mongoClient = new MongoClient(MONGODB_URI);
-await mongoClient.connect();
-const db = mongoClient.db(DB_NAME);
-const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" }) : null;
+let db = null;
+let mongoClient = null;
+
+const connectDB = async () => {
+  if (db) return db;
+  if (!mongoClient) {
+    mongoClient = new MongoClient(MONGODB_URI);
+    await mongoClient.connect();
+  }
+  db = mongoClient.db(DB_NAME);
+  return db;
+};
+
+// Middleware to ensure DB connection
+app.use(async (req, _res, next) => {
+  req.db = await connectDB();
+  req.user = await getUserFromToken(authTokenFromReq(req), req.db);
+  next();
+});
 
 const collectionMap = {
   profiles: "profiles",
@@ -49,7 +62,7 @@ const collectionMap = {
 };
 
 const nowIso = () => new Date().toISOString();
-const getCollection = (table) => db.collection(collectionMap[table]);
+const getCollection = (req, table) => req.db.collection(collectionMap[table]);
 const authTokenFromReq = (req) => (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
 const toMongoQuery = (filters = []) => {
   const query = {};
@@ -66,12 +79,12 @@ const serializeError = (error, code) => ({ message: error instanceof Error ? err
 const normalizeDoc = (doc, defaults = {}) => ({ id: doc.id || randomUUID(), ...defaults, ...doc });
 const duplicateKeyCode = (error) => (error && typeof error === "object" && "code" in error && error.code === 11000 ? "23505" : undefined);
 
-const hasRole = async (userId, role) => {
+const hasRole = async (db, userId, role) => {
   if (!userId) return false;
   return (await db.collection("user_roles").countDocuments({ user_id: userId, role })) > 0;
 };
 
-const getUserFromToken = async (token) => {
+const getUserFromToken = async (token, db) => {
   if (!token) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET);
@@ -93,7 +106,7 @@ const createSession = (user) => {
   };
 };
 
-const createNotification = async (title, message, link = "/admin/orders") => {
+const createNotification = async (db, title, message, link = "/admin/orders") => {
   await db.collection("admin_notifications").insertOne({
     id: randomUUID(),
     title,
@@ -104,7 +117,7 @@ const createNotification = async (title, message, link = "/admin/orders") => {
   });
 };
 
-const withJoins = async (table, rows, selectSpec) => {
+const withJoins = async (db, table, rows, selectSpec) => {
   if (!rows?.length) return rows;
 
   if (table === "profiles" && selectSpec?.includes("user_roles")) {
@@ -148,7 +161,7 @@ const withJoins = async (table, rows, selectSpec) => {
 
 const ensureAuthorized = async (req, table, op, filters) => {
   const user = req.user;
-  const isAdmin = user ? await hasRole(user.id, "admin") : false;
+  const isAdmin = user ? await hasRole(req.db, user.id, "admin") : false;
   const filterMap = new Map((filters || []).map((filter) => [filter.field, filter]));
   const ownUserId = filterMap.get("user_id")?.value;
 
@@ -167,16 +180,11 @@ const ensureAuthorized = async (req, table, op, filters) => {
   throw new Error("Forbidden");
 };
 
-app.use(async (req, _res, next) => {
-  req.user = await getUserFromToken(authTokenFromReq(req));
-  next();
-});
-
-app.get("/api/health", async (_req, res) => {
+app.get("/api/health", async (req, res) => {
   res.json({
     ok: true,
-    categories: await db.collection("categories").countDocuments(),
-    products: await db.collection("products").countDocuments(),
+    categories: await req.db.collection("categories").countDocuments(),
+    products: await req.db.collection("products").countDocuments(),
   });
 });
 
@@ -187,15 +195,15 @@ app.post("/api/auth/signup", async (req, res) => {
     const fullName = String(req.body?.full_name || "");
     if (!email || !password) throw new Error("Email and password are required");
 
-    if (await db.collection("users").findOne({ email })) {
+    if (await req.db.collection("users").findOne({ email })) {
       return res.json({ data: null, error: { message: "An account with this email already exists" } });
     }
 
-    const adminCount = await db.collection("user_roles").countDocuments({ role: "admin" });
+    const adminCount = await req.db.collection("user_roles").countDocuments({ role: "admin" });
     const userId = randomUUID();
     const createdAt = nowIso();
 
-    await db.collection("users").insertOne({
+    await req.db.collection("users").insertOne({
       id: userId,
       email,
       password_hash: await bcrypt.hash(password, 10),
@@ -204,7 +212,7 @@ app.post("/api/auth/signup", async (req, res) => {
       updated_at: createdAt,
     });
 
-    await db.collection("profiles").insertOne({
+    await req.db.collection("profiles").insertOne({
       id: randomUUID(),
       user_id: userId,
       email,
@@ -223,9 +231,9 @@ app.post("/api/auth/signup", async (req, res) => {
       updated_at: createdAt,
     });
 
-    await db.collection("user_roles").insertOne({ id: randomUUID(), user_id: userId, role: adminCount === 0 ? "admin" : "user", created_at: createdAt });
+    await req.db.collection("user_roles").insertOne({ id: randomUUID(), user_id: userId, role: adminCount === 0 ? "admin" : "user", created_at: createdAt });
     if (adminCount === 0) {
-      await db.collection("user_roles").insertOne({ id: randomUUID(), user_id: userId, role: "user", created_at: createdAt });
+      await req.db.collection("user_roles").insertOne({ id: randomUUID(), user_id: userId, role: "user", created_at: createdAt });
     }
 
     return res.json({ data: createSession({ id: userId, email, full_name: fullName }), error: null });
@@ -238,7 +246,7 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
-    const user = await db.collection("users").findOne({ email });
+    const user = await req.db.collection("users").findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.json({ data: null, error: { message: "Invalid credentials" } });
     }
@@ -254,7 +262,7 @@ app.get("/api/auth/me", async (req, res) => {
 
 app.post("/api/rpc/has_role", async (req, res) => {
   try {
-    return res.json({ data: await hasRole(req.body?._user_id, req.body?._role), error: null });
+    return res.json({ data: await hasRole(req.db, req.body?._user_id, req.body?._role), error: null });
   } catch (error) {
     return res.json({ data: null, error: serializeError(error) });
   }
@@ -267,13 +275,13 @@ app.post("/api/db/:table/query", async (req, res) => {
   try {
     if (!collectionMap[table]) throw new Error(`Unknown table: ${table}`);
     await ensureAuthorized(req, table, op, filters);
-    const collection = getCollection(table);
+    const collection = getCollection(req, table);
     const query = toMongoQuery(filters);
 
     if (op === "select") {
       let cursor = collection.find(query).sort(sortFromOrder(order));
       if (typeof limit === "number") cursor = cursor.limit(limit);
-      const rows = await withJoins(table, await cursor.toArray(), selectSpec);
+      const rows = await withJoins(req.db, table, await cursor.toArray(), selectSpec);
       if (singleMode === "single") {
         return res.json({ data: rows[0] || null, error: rows[0] ? null : { message: "Row not found", code: "PGRST116" } });
       }
@@ -302,9 +310,9 @@ app.post("/api/db/:table/query", async (req, res) => {
       }
       await collection.insertMany(docs, { ordered: true });
       if ((table === "reviews" || table === "product_reviews") && req.user) {
-        const existingProfile = await db.collection("profiles").findOne({ user_id: req.user.id });
+        const existingProfile = await req.db.collection("profiles").findOne({ user_id: req.user.id });
         if (existingProfile) {
-          await db.collection("profiles").updateOne(
+          await req.db.collection("profiles").updateOne(
             { user_id: req.user.id },
             {
               $set: {
@@ -316,7 +324,7 @@ app.post("/api/db/:table/query", async (req, res) => {
         }
       }
       if (table === "contact_messages") {
-        await createNotification("New contact message", `Message received from ${docs[0]?.email || "customer"}.`, "/admin/settings");
+        await createNotification(req.db, "New contact message", `Message received from ${docs[0]?.email || "customer"}.`, "/admin/settings");
       }
       return res.json({ data: docs.length === 1 ? docs[0] : docs, error: null });
     }
@@ -330,11 +338,11 @@ app.post("/api/db/:table/query", async (req, res) => {
           const afterRow = rows.find((row) => row.id === beforeRow.id);
           if (!afterRow) continue;
           if (beforeRow.status !== "delivered" && afterRow.status === "delivered" && afterRow.user_id) {
-            await db.collection("profiles").updateOne(
+            await req.db.collection("profiles").updateOne(
               { user_id: afterRow.user_id },
               { $inc: { reward_points: Math.max(1, Math.floor(Number(afterRow.total || 0))) }, $set: { updated_at: nowIso() } }
             );
-            await db.collection("notifications").insertOne({
+            await req.db.collection("notifications").insertOne({
               id: randomUUID(),
               user_id: afterRow.user_id,
               title: "Order delivered",
@@ -355,8 +363,8 @@ app.post("/api/db/:table/query", async (req, res) => {
       if (table === "products") {
         const productIds = rows.map((row) => row.id);
         if (productIds.length) {
-          await db.collection("product_images").deleteMany({ product_id: { $in: productIds } });
-          await db.collection("product_variants").deleteMany({ product_id: { $in: productIds } });
+          await req.db.collection("product_images").deleteMany({ product_id: { $in: productIds } });
+          await req.db.collection("product_variants").deleteMany({ product_id: { $in: productIds } });
         }
       }
       return res.json({ data: rows, error: null });
@@ -398,8 +406,8 @@ app.post("/api/db/:table/query", async (req, res) => {
 app.post("/api/functions/ai-assistant", async (req, res) => {
   const messages = req.body?.messages || [];
   try {
-    const products = await db.collection("products").find({}).toArray();
-    const categories = await db.collection("categories").find({}).toArray();
+    const products = await req.db.collection("products").find({}).toArray();
+    const categories = await req.db.collection("categories").find({}).toArray();
 
     const { text } = await generateText({
       model: openai("gpt-4o"),
@@ -433,7 +441,7 @@ app.post("/api/functions/return-assistant", async (req, res) => {
 
   if (action === "lookup_order") {
     const orderNumber = String(payload?.order_number || "").toUpperCase();
-    const order = await db.collection("orders").findOne({ order_number: orderNumber });
+    const order = await req.db.collection("orders").findOne({ order_number: orderNumber });
     if (!order) return res.json({ found: false, message: "Our records do not indicate an order with that number." });
 
     const orderEmail = order.shipping_address?.email || order.email || null;
@@ -456,7 +464,7 @@ app.post("/api/functions/return-assistant", async (req, res) => {
   if (action === "check_return_status") {
     const returnId = String(payload?.return_request_id || "").toUpperCase();
     const query = payload?.user_id ? { return_request_id: returnId, user_id: payload.user_id } : { return_request_id: returnId };
-    return res.json({ returns: await db.collection("return_requests").find(query).toArray() });
+    return res.json({ returns: await req.db.collection("return_requests").find(query).toArray() });
   }
 
   try {
@@ -485,7 +493,7 @@ app.post("/api/functions/return-notification", async (req, res) => {
   try {
     const { return_request_id, order_number, user_id, new_status, resolution } = req.body || {};
     if (user_id) {
-      await db.collection("notifications").insertOne({
+      await req.db.collection("notifications").insertOne({
         id: randomUUID(),
         user_id,
         title: "Return Status Updated",
@@ -496,7 +504,7 @@ app.post("/api/functions/return-notification", async (req, res) => {
       });
     }
 
-    await createNotification(
+    await createNotification(req.db,
       "Return status changed",
       `Return ${return_request_id} for order ${order_number} changed to ${new_status}${resolution ? ` (${resolution})` : ""}.`,
       "/admin/returns"
@@ -510,6 +518,7 @@ app.post("/api/functions/return-notification", async (req, res) => {
 
 const createCheckoutHandler = async (req, res) => {
   try {
+    const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" }) : null;
     if (!stripe) throw new Error("Server misconfiguration: STRIPE_SECRET_KEY is not set");
     const user = req.user;
     const { items, shippingCost = 0, tax = 0, shippingAddress = {}, shippingMethod = "" } = req.body || {};
@@ -561,7 +570,7 @@ const createCheckoutHandler = async (req, res) => {
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity || 1), 0);
     const createdAt = nowIso();
-    await db.collection("orders").insertOne({
+    await req.db.collection("orders").insertOne({
       id: randomUUID(),
       user_id: user?.id || null,
       order_number: orderNumber,
@@ -578,7 +587,7 @@ const createCheckoutHandler = async (req, res) => {
       updated_at: createdAt,
     });
 
-    await createNotification("New order placed", `Order ${orderNumber} has been created.`, "/admin/orders");
+    await createNotification(req.db, "New order placed", `Order ${orderNumber} has been created.`, "/admin/orders");
     return res.json({ url: session.url, orderNumber });
   } catch (error) {
     return res.status(500).json({ error: error instanceof Error ? error.message : "Checkout failed" });
@@ -588,7 +597,7 @@ const createCheckoutHandler = async (req, res) => {
 app.post("/api/functions/create-checkout", createCheckoutHandler);
 app.post("/api/functions/create-checkout-session", createCheckoutHandler);
 
-const ensureIndexes = async () => {
+const ensureIndexes = async (db) => {
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("profiles").createIndex({ user_id: 1 }, { unique: true });
   await db.collection("user_roles").createIndex({ user_id: 1, role: 1 }, { unique: true });
@@ -601,7 +610,7 @@ const ensureIndexes = async () => {
   await db.collection("gift_cards").createIndex({ code: 1 }, { unique: true, sparse: true });
 };
 
-const seedIfEmpty = async () => {
+const seedIfEmpty = async (db) => {
   if ((await db.collection("categories").countDocuments()) === 0) {
     await db.collection("categories").insertMany(defaultCategories.map((category) => ({ ...category, created_at: nowIso(), updated_at: nowIso() })));
   }
@@ -618,9 +627,13 @@ const seedIfEmpty = async () => {
   }
 };
 
-await ensureIndexes();
-await seedIfEmpty();
+// Initialization for Serverless environment
+const init = async () => {
+  const db = await connectDB();
+  await ensureIndexes(db);
+  await seedIfEmpty(db);
+};
 
-app.listen(PORT, () => {
-  console.log(`Mongo API listening on http://localhost:${PORT}`);
-});
+init().catch(console.error);
+
+export default app;
