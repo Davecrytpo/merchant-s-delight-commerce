@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import cors from "cors";
 import express from "express";
 import bcrypt from "bcryptjs";
@@ -19,7 +17,11 @@ const DEFAULT_SITE_URL = process.env.DEFAULT_SITE_URL || "http://localhost:8080"
 const OLLAMA_BASE_URL = (process.env.OLLAMA_BASE_URL || "").replace(/\/$/, "");
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen3:8b";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const AI_PROVIDER = (process.env.AI_PROVIDER || "auto").trim().toLowerCase();
 
 if (!MONGODB_URI && !MONGODB_DIRECT_URI) throw new Error("MONGODB_URI or MONGODB_DIRECT_URI is required");
 
@@ -144,9 +146,9 @@ const createAiDebugLog = async (db, entry = {}) => {
     id: randomUUID(),
     source: entry.source || "unknown",
     status: entry.status || "info",
-    provider: entry.provider || (OLLAMA_BASE_URL ? "ollama" : "openai"),
-    model: entry.model || (OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL),
-    configured: entry.configured ?? (OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY)),
+    provider: entry.provider || getDefaultProviderForLogs(),
+    model: entry.model || getDefaultModelForLogs(),
+    configured: entry.configured ?? Boolean(getConfiguredAiProviders().length),
     duration_ms: entry.duration_ms ?? null,
     message: entry.message || "",
     error: entry.error || null,
@@ -182,6 +184,50 @@ const normalizeAiMessages = (messages = []) =>
     .filter((message) => message && typeof message.content === "string" && typeof message.role === "string")
     .map((message) => ({ role: message.role, content: message.content.trim() }))
     .filter((message) => message.content);
+
+const getConfiguredAiProviders = () => {
+  const providers = [];
+  if (GEMINI_API_KEY) providers.push("gemini");
+  if (OPENAI_API_KEY) providers.push("openai");
+  if (OLLAMA_BASE_URL) providers.push("ollama");
+  return providers;
+};
+
+const getPreferredAiProviders = () => {
+  const configuredProviders = getConfiguredAiProviders();
+  if (!configuredProviders.length) return [];
+
+  if (AI_PROVIDER === "gemini") {
+    return ["gemini", "openai", "ollama"].filter((provider) => configuredProviders.includes(provider));
+  }
+
+  if (AI_PROVIDER === "openai") {
+    return ["openai", "gemini", "ollama"].filter((provider) => configuredProviders.includes(provider));
+  }
+
+  if (AI_PROVIDER === "ollama") {
+    return ["ollama", "gemini", "openai"].filter((provider) => configuredProviders.includes(provider));
+  }
+
+  if (configuredProviders.includes("gemini")) {
+    return ["gemini", "openai", "ollama"].filter((provider) => configuredProviders.includes(provider));
+  }
+
+  if (configuredProviders.includes("openai")) {
+    return ["openai", "gemini", "ollama"].filter((provider) => configuredProviders.includes(provider));
+  }
+
+  return configuredProviders;
+};
+
+const getDefaultProviderForLogs = () => getPreferredAiProviders()[0] || "none";
+const getDefaultModelForLogs = () => {
+  const provider = getDefaultProviderForLogs();
+  if (provider === "ollama") return OLLAMA_MODEL;
+  if (provider === "openai") return OPENAI_MODEL;
+  if (provider === "gemini") return GEMINI_MODEL;
+  return null;
+};
 
 const latestUserMessage = (messages = []) =>
   [...messages].reverse().find((message) => message.role === "user" && typeof message.content === "string")?.content || "";
@@ -267,13 +313,79 @@ const tryOpenAiText = async ({ system, messages }) => {
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const result = await generateText({
-    model: openai(OPENAI_MODEL),
-    system,
-    messages,
+  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      messages: [
+        { role: "system", content: system },
+        ...messages,
+      ],
+    }),
   });
 
-  return result.text?.trim();
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `OpenAI request failed with status ${response.status}`);
+  }
+
+  const text = typeof data?.choices?.[0]?.message?.content === "string" ? data.choices[0].message.content.trim() : "";
+
+  return text;
+};
+
+const tryGeminiText = async ({ system, messages }) => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+
+  const prompt = [
+    system ? `System instructions:\n${system}` : "",
+    ...messages.map((message) => `${message.role.toUpperCase()}:\n${message.content}`),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": GEMINI_API_KEY,
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `Gemini request failed with status ${response.status}`);
+  }
+
+  const text = data?.candidates?.[0]?.content?.parts?.map((part) => part?.text || "").join("\n").trim();
+
+  return text;
+};
+
+const tryProviderText = async (provider, payload) => {
+  if (provider === "gemini") return tryGeminiText(payload);
+  if (provider === "openai") return tryOpenAiText(payload);
+  if (provider === "ollama") return tryOllamaText(payload);
+  throw new Error(`Unsupported AI provider: ${provider}`);
+};
+
+const modelForProvider = (provider) => {
+  if (provider === "gemini") return GEMINI_MODEL;
+  if (provider === "ollama") return OLLAMA_MODEL;
+  return OPENAI_MODEL;
 };
 
 const tryOllamaText = async ({ system, messages }) => {
@@ -305,28 +417,55 @@ const tryOllamaText = async ({ system, messages }) => {
 const generateResilientAssistantReply = async ({ db, source, system, messages, fallbackBuilder, logLabel }) => {
   const startedAt = Date.now();
   const requestExcerpt = latestUserMessage(messages).slice(0, 240);
+  const providersToTry = getPreferredAiProviders();
+
+  if (!providersToTry.length) {
+    const errorMessage = "No AI provider is configured. Set OPENAI_API_KEY or OLLAMA_BASE_URL.";
+    await createAiDebugLog(db, {
+      source,
+      status: "fallback",
+      provider: "none",
+      model: null,
+      configured: false,
+      duration_ms: Date.now() - startedAt,
+      message: "Fallback response served because no AI provider is configured.",
+      error: errorMessage,
+      request_excerpt: requestExcerpt,
+      meta: { message_count: messages.length, configured_providers: [] },
+    });
+    await notifyAiFailure(db, source, errorMessage);
+    return fallbackBuilder();
+  }
 
   try {
-    const provider = OLLAMA_BASE_URL ? "ollama" : "openai";
-    const model = OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL;
-    const reply = OLLAMA_BASE_URL
-      ? await tryOllamaText({ system, messages })
-      : await tryOpenAiText({ system, messages });
+    let provider = providersToTry[0];
+    let reply = "";
+    const errors = [];
+
+    for (const candidate of providersToTry) {
+      try {
+        provider = candidate;
+        reply = await tryProviderText(candidate, { system, messages });
+        if (reply) break;
+      } catch (error) {
+        errors.push(`${candidate}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
 
     if (!reply) {
-      throw new Error(`${provider} returned an empty response`);
+      throw new Error(errors.join(" | ") || "AI provider returned an empty response");
     }
 
     await createAiDebugLog(db, {
       source,
       status: "success",
       provider,
-      model,
-      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
+      model: modelForProvider(provider),
+      configured: true,
       duration_ms: Date.now() - startedAt,
       message: `${provider} response generated successfully.`,
       request_excerpt: requestExcerpt,
-      meta: { message_count: messages.length },
+      meta: { message_count: messages.length, providers_tried: providersToTry },
     });
 
     return reply;
@@ -336,14 +475,14 @@ const generateResilientAssistantReply = async ({ db, source, system, messages, f
     await createAiDebugLog(db, {
       source,
       status: "fallback",
-      provider: OLLAMA_BASE_URL ? "ollama" : "openai",
-      model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
-      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
+      provider: getDefaultProviderForLogs(),
+      model: getDefaultModelForLogs(),
+      configured: Boolean(providersToTry.length),
       duration_ms: Date.now() - startedAt,
       message: "Fallback response served after AI provider failure.",
       error: errorMessage,
       request_excerpt: requestExcerpt,
-      meta: { message_count: messages.length },
+      meta: { message_count: messages.length, providers_tried: providersToTry },
     });
     await notifyAiFailure(db, source, errorMessage);
     return fallbackBuilder();
@@ -430,9 +569,10 @@ app.post("/api/functions/ai-debug-status", async (req, res) => {
   const latestFallback = await req.db.collection("ai_debug_logs").findOne({ status: "fallback" }, { sort: { created_at: -1 } });
 
   return res.json({
-    configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
-    provider: OLLAMA_BASE_URL ? "ollama" : "openai",
-    model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
+    configured: Boolean(getConfiguredAiProviders().length),
+    provider: getDefaultProviderForLogs(),
+    model: getDefaultModelForLogs(),
+    providers: getConfiguredAiProviders(),
     latest_success_at: latestSuccess?.created_at || null,
     latest_fallback_at: latestFallback?.created_at || null,
     recent_logs: recentLogs,
@@ -445,47 +585,68 @@ app.post("/api/functions/ai-debug-test", async (req, res) => {
 
   const startedAt = Date.now();
   try {
-    const provider = OLLAMA_BASE_URL ? "ollama" : "openai";
-    const model = OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL;
-    const text = OLLAMA_BASE_URL
-      ? await tryOllamaText({
-          system: "You are a connectivity test. Reply with exactly: OLLAMA_OK",
+    const providersToTry = getPreferredAiProviders();
+    if (!providersToTry.length) {
+      throw new Error("No AI provider is configured. Set OPENAI_API_KEY or OLLAMA_BASE_URL.");
+    }
+
+    let provider = providersToTry[0];
+    let text = "";
+    const errors = [];
+
+    for (const candidate of providersToTry) {
+      try {
+        provider = candidate;
+        text = await tryProviderText(candidate, {
+          system:
+            candidate === "ollama"
+              ? "You are a connectivity test. Reply with exactly: OLLAMA_OK"
+              : candidate === "gemini"
+                ? "You are a connectivity test. Reply with exactly: GEMINI_OK"
+                : "You are a connectivity test. Reply with exactly: OPENAI_OK",
           messages: [{ role: "user", content: "Ping" }],
-        })
-      : await tryOpenAiText({
-      system: "You are a connectivity test. Reply with exactly: OPENAI_OK",
-      messages: [{ role: "user", content: "Ping" }],
-    });
+        });
+        if (text) break;
+      } catch (error) {
+        errors.push(`${candidate}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    if (!text) {
+      throw new Error(errors.join(" | ") || "AI connectivity test returned an empty response");
+    }
+
+    const model = modelForProvider(provider);
 
     await createAiDebugLog(req.db, {
       source: "admin-ai-test",
       status: "success",
       provider,
       model,
-      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
+      configured: true,
       duration_ms: Date.now() - startedAt,
       message: `Admin ${provider} connectivity test passed.`,
       request_excerpt: "Ping",
-      meta: { reply: text },
+      meta: { reply: text, providers_tried: providersToTry },
     });
 
-    const expectedReply = OLLAMA_BASE_URL ? "OLLAMA_OK" : "OPENAI_OK";
+    const expectedReply = provider === "ollama" ? "OLLAMA_OK" : provider === "gemini" ? "GEMINI_OK" : "OPENAI_OK";
     return res.json({ ok: text === expectedReply, reply: text, model, provider });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await createAiDebugLog(req.db, {
       source: "admin-ai-test",
       status: "error",
-      provider: OLLAMA_BASE_URL ? "ollama" : "openai",
-      model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL,
-      configured: OLLAMA_BASE_URL ? true : Boolean(OPENAI_API_KEY),
+      provider: getDefaultProviderForLogs(),
+      model: getDefaultModelForLogs(),
+      configured: Boolean(getConfiguredAiProviders().length),
       duration_ms: Date.now() - startedAt,
       message: "Admin AI connectivity test failed.",
       error: errorMessage,
       request_excerpt: "Ping",
     });
     await notifyAiFailure(req.db, "admin-ai-test", errorMessage);
-    return res.status(500).json({ ok: false, error: errorMessage, model: OLLAMA_BASE_URL ? OLLAMA_MODEL : OPENAI_MODEL, provider: OLLAMA_BASE_URL ? "ollama" : "openai" });
+    return res.status(500).json({ ok: false, error: errorMessage, model: getDefaultModelForLogs(), provider: getDefaultProviderForLogs() });
   }
 });
 
