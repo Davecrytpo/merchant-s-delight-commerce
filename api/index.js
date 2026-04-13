@@ -77,6 +77,7 @@ const collectionMap = {
   shipping_methods: "shipping_methods",
   return_requests: "return_requests",
   ai_debug_logs: "ai_debug_logs",
+  site_settings: "site_settings",
   notifications: "notifications",
   admin_notifications: "admin_notifications",
   newsletter_subscribers: "newsletter_subscribers",
@@ -696,10 +697,22 @@ const withJoins = async (db, table, rows, selectSpec) => {
     const userIds = rows.map((row) => row.user_id).filter(Boolean);
     const profiles = await db.collection("profiles").find({ user_id: { $in: userIds } }).toArray();
     const profilesByUser = new Map(profiles.map((profile) => [profile.user_id, profile]));
-    return rows.map((row) => ({
+    rows = rows.map((row) => ({
       ...row,
       profiles: profilesByUser.get(row.user_id)
         ? { full_name: profilesByUser.get(row.user_id).full_name || null, avatar_url: profilesByUser.get(row.user_id).avatar_url || null }
+        : null,
+    }));
+  }
+
+  if ((table === "reviews" || table === "product_reviews") && selectSpec?.includes("products")) {
+    const productIds = rows.map((row) => row.product_id).filter(Boolean);
+    const products = await db.collection("products").find({ id: { $in: productIds } }).toArray();
+    const productsById = new Map(products.map((product) => [product.id, product]));
+    rows = rows.map((row) => ({
+      ...row,
+      products: productsById.get(row.product_id)
+        ? { name: productsById.get(row.product_id).name || null, slug: productsById.get(row.product_id).slug || null }
         : null,
     }));
   }
@@ -1396,6 +1409,17 @@ const seedIfEmpty = async (db) => {
 
   if ((await db.collection("shipping_methods").countDocuments()) === 0) {
     await db.collection("shipping_methods").insertMany(buildShippingSeed());
+  }
+
+  if ((await db.collection("site_settings").countDocuments()) === 0) {
+    await db.collection("site_settings").insertOne({
+      id: "default",
+      store_name: "Merchant's Delight",
+      currency: "USD",
+      support_email: "",
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    });
   }
 };
 

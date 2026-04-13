@@ -1,19 +1,50 @@
 import { useState } from "react";
 import { Truck, Plus, Edit, Trash2, Loader2, Save, X } from "lucide-react";
-import { useShippingMethods } from "@/hooks/useShipping";
 import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function AdminShipping() {
-  const { data: methods, isLoading: methodsLoading } = useShippingMethods();
   const queryClient = useQueryClient();
-  
+  const { data: methods, isLoading: methodsLoading } = useQuery({
+    queryKey: ["admin-shipping-methods"],
+    queryFn: async () => {
+      const { data, error } = await apiClient
+        .from("shipping_methods")
+        .select("*")
+        .order("price", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: "", carrier: "", price: 0, min_order_amount: 0, estimated_days: "", description: ""
+    name: "",
+    carrier: "",
+    price: 0,
+    min_order_amount: 0,
+    estimated_days: "",
+    description: "",
+    is_active: true,
+    country_code: "US",
   });
+
+  const resetForm = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData({
+      name: "",
+      carrier: "",
+      price: 0,
+      min_order_amount: 0,
+      estimated_days: "",
+      description: "",
+      is_active: true,
+      country_code: "US",
+    });
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,10 +58,9 @@ export default function AdminShipping() {
         if (error) throw error;
         toast.success("Shipping method created");
       }
+      queryClient.invalidateQueries({ queryKey: ["admin-shipping-methods"] });
       queryClient.invalidateQueries({ queryKey: ["shipping-methods"] });
-      setIsAdding(false);
-      setEditingId(null);
-      setFormData({ name: "", carrier: "", price: 0, min_order_amount: 0, estimated_days: "", description: "" });
+      resetForm();
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -42,6 +72,7 @@ export default function AdminShipping() {
     if (error) toast.error("Failed to delete");
     else {
       toast.success("Deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-shipping-methods"] });
       queryClient.invalidateQueries({ queryKey: ["shipping-methods"] });
     }
   };
@@ -51,7 +82,10 @@ export default function AdminShipping() {
     setFormData({
       name: m.name, carrier: m.carrier, price: Number(m.price), 
       min_order_amount: Number(m.min_order_amount), 
-      estimated_days: m.estimated_days, description: m.description
+      estimated_days: m.estimated_days,
+      description: m.description,
+      is_active: m.is_active !== false,
+      country_code: m.country_code || "US",
     });
   };
 
@@ -84,14 +118,23 @@ export default function AdminShipping() {
             <input type="number" step="0.01" className={inputClass} value={formData.min_order_amount} onChange={e => setFormData({...formData, min_order_amount: Number(e.target.value)})} /></div>
             <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Est. Days</label>
             <input required placeholder="e.g. 3-5 business days" className={inputClass} value={formData.estimated_days} onChange={e => setFormData({...formData, estimated_days: e.target.value})} /></div>
+            <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Country Scope</label>
+            <select className={inputClass} value={formData.country_code} onChange={e => setFormData({...formData, country_code: e.target.value})}>
+              <option value="US">United States</option>
+              <option value="ALL">International</option>
+            </select></div>
           </div>
           <div><label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Description</label>
           <textarea placeholder="Brief description..." className={`${inputClass} h-20`} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
+          <label className="flex items-center justify-between rounded-xl bg-secondary/40 px-4 py-3 text-sm">
+            <span>Method is active</span>
+            <input type="checkbox" className="h-4 w-4 accent-primary" checked={formData.is_active} onChange={e => setFormData({...formData, is_active: e.target.checked})} />
+          </label>
           <div className="flex gap-2">
             <button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm">
               <Save className="w-4 h-4" /> {editingId ? "Update" : "Save"}
             </button>
-            <button type="button" onClick={() => {setIsAdding(false); setEditingId(null);}} className="px-4 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm">
+            <button type="button" onClick={resetForm} className="px-4 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm">
               Cancel
             </button>
           </div>
@@ -118,12 +161,16 @@ export default function AdminShipping() {
                   <button onClick={() => handleDelete(m.id)} className="p-1.5 hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{m.estimated_days}</span>
                 <div className="text-right">
                   <span className="font-bold">${Number(m.price).toFixed(2)}</span>
                   {m.min_order_amount > 0 && <p className="text-[10px] text-green-400">Free over ${Number(m.min_order_amount).toFixed(0)}</p>}
                 </div>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>{m.country_code === "ALL" ? "International" : "United States"}</span>
+                <span className={m.is_active !== false ? "text-green-500" : "text-yellow-500"}>{m.is_active !== false ? "Active" : "Inactive"}</span>
               </div>
             </div>
           ))
@@ -139,12 +186,13 @@ export default function AdminShipping() {
                 <th className="py-3 px-4 text-left">Carrier / Method</th>
                 <th className="py-3 px-4 text-left">Price</th>
                 <th className="py-3 px-4 text-left">Est. Time</th>
+                <th className="py-3 px-4 text-left">Scope</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {methods?.length === 0 ? (
-                <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No shipping methods found.</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No shipping methods found.</td></tr>
               ) : (
                 methods?.map((m: any) => (
                 <tr key={m.id} className="border-b border-border/50 hover:bg-secondary/30">
@@ -162,6 +210,12 @@ export default function AdminShipping() {
                     {m.min_order_amount > 0 && <p className="text-[10px] text-green-400 font-normal">Free over ${Number(m.min_order_amount).toFixed(0)}</p>}
                   </td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{m.estimated_days}</td>
+                  <td className="py-3 px-4 text-xs">
+                    <div className="flex flex-col">
+                      <span>{m.country_code === "ALL" ? "International" : "United States"}</span>
+                      <span className={m.is_active !== false ? "text-green-500" : "text-yellow-500"}>{m.is_active !== false ? "Active" : "Inactive"}</span>
+                    </div>
+                  </td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => startEdit(m)} className="p-1.5 hover:text-primary transition-colors"><Edit className="w-4 h-4" /></button>
                     <button onClick={() => handleDelete(m.id)} className="p-1.5 hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button>

@@ -12,7 +12,7 @@ export default function Dashboard() {
   const totalRevenue = orders?.reduce((acc: number, o: any) => acc + o.total, 0) || 0;
   const totalOrders = orders?.length || 0;
   const totalProducts = products?.length || 0;
-  const uniqueCustomers = new Set(orders?.map((o: any) => o.user_id)).size || 0;
+  const uniqueCustomers = new Set((orders || []).map((o: any) => o.user_id).filter(Boolean)).size || 0;
 
   const stats = [
     { label: "Revenue", value: `$${totalRevenue.toFixed(2)}`, change: "+12.5%", icon: DollarSign },
@@ -71,7 +71,8 @@ export default function Dashboard() {
         
         {/* Mobile card view */}
         <div className="md:hidden space-y-3">
-          {ordersLoading ? <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div> : 
+          {ordersLoading ? <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div> :
+            !orders?.length ? <div className="py-8 text-center text-sm text-muted-foreground">No orders yet</div> :
             orders?.slice(0, 5).map((o: any) => (
               <div key={o.id} className="bg-secondary/30 rounded-xl p-3 flex items-center justify-between">
                 <div>
@@ -99,7 +100,8 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {ordersLoading ? <tr><td colSpan={4} className="py-10 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr> : 
+              {ordersLoading ? <tr><td colSpan={4} className="py-10 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr> :
+                !orders?.length ? <tr><td colSpan={4} className="py-10 text-center text-muted-foreground">No orders yet</td></tr> :
                 orders?.slice(0, 5).map((o: any) => (
                   <tr key={o.id} className="border-b border-border/50">
                     <td className="py-3 font-medium text-xs">{o.order_number}</td>

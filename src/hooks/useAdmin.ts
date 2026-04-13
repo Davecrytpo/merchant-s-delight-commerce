@@ -7,20 +7,27 @@ export const useAdmin = () => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await apiClient.auth.getUser();
-      if (!user) {
+      try {
+        const { data: { user } } = await apiClient.auth.getUser();
+        if (!user) {
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await apiClient.rpc("has_role", {
+          _user_id: user.id,
+          _role: "admin",
+        } as any);
+
+        if (error) throw error;
+        setIsAdmin(!!data);
+      } catch (error) {
+        console.error("Failed to verify admin access:", error);
         setIsAdmin(false);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const { data } = await apiClient.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      } as any);
-
-      setIsAdmin(!!data);
-      setLoading(false);
     };
 
     checkAdmin();

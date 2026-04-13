@@ -1,15 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/integrations/api/client";
 import { AlertCircle, Bot, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [storeName, setStoreName] = useState("Merchant's Delight");
   const [currency, setCurrency] = useState("USD");
+  const [supportEmail, setSupportEmail] = useState("");
   const inputClass = "w-full bg-secondary rounded-xl px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-primary";
+
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ["admin-site-settings"],
+    queryFn: async () => {
+      const { data, error } = await apiClient
+        .from("site_settings")
+        .select("*")
+        .eq("id", "default")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (!settings) return;
+    setStoreName(settings.store_name || "Merchant's Delight");
+    setCurrency(settings.currency || "USD");
+    setSupportEmail(settings.support_email || "");
+  }, [settings]);
+
+  const saveSettings = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        id: "default",
+        store_name: storeName.trim() || "Merchant's Delight",
+        currency,
+        support_email: supportEmail.trim().toLowerCase(),
+      };
+      const { error } = await apiClient.from("site_settings").upsert(payload, { onConflict: "id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      toast.success("Settings saved");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to save settings");
+    },
+  });
 
   const { data: aiStatus, isLoading: aiLoading } = useQuery({
     queryKey: ["admin-ai-debug-status"],
@@ -48,20 +91,37 @@ export default function AdminSettings() {
         <h2 className="font-semibold text-sm md:text-base">General</h2>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Store Name</label>
-          <input className={inputClass} value={storeName} onChange={(e) => setStoreName(e.target.value)} />
+          <input className={inputClass} value={storeName} onChange={(e) => setStoreName(e.target.value)} disabled={settingsLoading} />
         </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Currency</label>
-          <select className={inputClass} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+          <select className={inputClass} value={currency} onChange={(e) => setCurrency(e.target.value)} disabled={settingsLoading}>
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (EUR)</option>
             <option value="GBP">GBP (GBP)</option>
           </select>
         </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Support Email</label>
+          <input
+            className={inputClass}
+            type="email"
+            value={supportEmail}
+            onChange={(e) => setSupportEmail(e.target.value)}
+            placeholder="support@merchantsdelight.com"
+            disabled={settingsLoading}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Current Admin</label>
+          <input className={inputClass} value={user?.email || ""} disabled />
+        </div>
         <button
-          onClick={() => toast.success("Settings saved!")}
-          className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl hover:opacity-90 w-full sm:w-auto"
+          onClick={() => saveSettings.mutate()}
+          disabled={settingsLoading || saveSettings.isPending}
+          className="gold-gradient text-background font-semibold px-6 py-3 rounded-xl hover:opacity-90 w-full sm:w-auto disabled:opacity-60 inline-flex items-center justify-center gap-2"
         >
+          {saveSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Save Changes
         </button>
       </div>
