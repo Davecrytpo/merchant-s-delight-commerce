@@ -236,6 +236,9 @@ export const useAdminProductMutations = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product created successfully");
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to create product");
+    },
   });
 
   const updateProduct = useMutation({
@@ -287,6 +290,9 @@ export const useAdminProductMutations = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product updated successfully");
     },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to update product");
+    },
   });
 
   const deleteProduct = useMutation({
@@ -297,6 +303,9 @@ export const useAdminProductMutations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Product deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || "Failed to delete product");
     },
   });
 

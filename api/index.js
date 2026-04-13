@@ -22,6 +22,8 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const AI_PROVIDER = (process.env.AI_PROVIDER || "auto").trim().toLowerCase();
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const ADMIN_NOTIFICATION_FROM_EMAIL = process.env.ADMIN_NOTIFICATION_FROM_EMAIL || "Merchant's Delight <onboarding@resend.dev>";
 
 if (!MONGODB_URI && !MONGODB_DIRECT_URI) throw new Error("MONGODB_URI or MONGODB_DIRECT_URI is required");
 
@@ -131,6 +133,68 @@ const createSession = (user) => {
   };
 };
 
+const getAdminNotificationRecipients = async (db) => {
+  const recipients = new Set();
+
+  try {
+    const siteSettings = await db.collection("site_settings").findOne({ id: "default" });
+    const supportEmail = String(siteSettings?.support_email || "").trim().toLowerCase();
+    if (supportEmail) recipients.add(supportEmail);
+  } catch (error) {
+    console.error("Failed to read site settings for admin recipients:", error);
+  }
+
+  try {
+    const adminRoles = await db.collection("user_roles").find({ role: "admin" }).toArray();
+    const adminUserIds = [...new Set(adminRoles.map((entry) => entry.user_id).filter(Boolean))];
+    if (adminUserIds.length) {
+      const adminUsers = await db.collection("users").find({ id: { $in: adminUserIds } }).toArray();
+      for (const user of adminUsers) {
+        const email = String(user?.email || "").trim().toLowerCase();
+        if (email) recipients.add(email);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to read admin users for recipients:", error);
+  }
+
+  return [...recipients];
+};
+
+const sendAdminNotificationEmail = async (db, { subject, text, html }) => {
+  const recipients = await getAdminNotificationRecipients(db);
+  if (!recipients.length || !RESEND_API_KEY) {
+    return { sent: false, recipients, reason: recipients.length ? "missing_resend_api_key" : "no_recipients" };
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: ADMIN_NOTIFICATION_FROM_EMAIL,
+        to: recipients,
+        subject,
+        text,
+        html,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.message || data?.error || "Failed to send admin email");
+    }
+
+    return { sent: true, recipients, id: data?.id || null };
+  } catch (error) {
+    console.error("Admin notification email failed:", error);
+    return { sent: false, recipients, reason: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 const createNotification = async (db, title, message, link = "/admin/orders") => {
   await db.collection("admin_notifications").insertOne({
     id: randomUUID(),
@@ -139,6 +203,19 @@ const createNotification = async (db, title, message, link = "/admin/orders") =>
     link,
     is_read: false,
     created_at: nowIso(),
+  });
+
+  const href = link ? `${DEFAULT_SITE_URL.replace(/\/$/, "")}${link.startsWith("/") ? link : `/${link}`}` : DEFAULT_SITE_URL;
+  await sendAdminNotificationEmail(db, {
+    subject: `[Merchant's Delight] ${title}`,
+    text: `${title}\n\n${message}\n\nOpen admin: ${href}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+        <h2 style="margin-bottom:12px;">${title}</h2>
+        <p style="margin-bottom:16px;">${message}</p>
+        <p><a href="${href}" style="color:#b7791f;text-decoration:none;font-weight:700;">Open admin dashboard</a></p>
+      </div>
+    `,
   });
 };
 
@@ -887,6 +964,13 @@ app.post("/api/auth/signup", async (req, res) => {
       await req.db.collection("user_roles").insertOne({ id: randomUUID(), user_id: userId, role: "user", created_at: createdAt });
     }
 
+    await createNotification(
+      req.db,
+      "New customer account",
+      `${email} created a new ${adminCount === 0 ? "admin" : "customer"} account.`,
+      "/admin/customers"
+    );
+
     return res.json({ data: createSession({ id: userId, email, full_name: fullName }), error: null });
   } catch (error) {
     return res.json({ data: null, error: serializeError(error) });
@@ -974,8 +1058,33 @@ app.post("/api/db/:table/query", async (req, res) => {
           );
         }
       }
+      if ((table === "reviews" || table === "product_reviews") && docs[0]?.product_id) {
+        const reviewedProduct = await req.db.collection("products").findOne({ id: docs[0].product_id });
+        await createNotification(
+          req.db,
+          "New product review",
+          `${req.user?.email || "A customer"} left a ${docs[0]?.rating || 0}-star review for ${reviewedProduct?.name || "a product"}.`,
+          "/admin/reviews"
+        );
+      }
+      if (table === "newsletter_subscribers") {
+        await createNotification(
+          req.db,
+          "Newsletter signup",
+          `${docs[0]?.email || "A visitor"} joined the newsletter list.`,
+          "/admin/settings"
+        );
+      }
       if (table === "contact_messages") {
         await createNotification(req.db, "New contact message", `Message received from ${docs[0]?.email || "customer"}.`, "/admin/settings");
+      }
+      if (table === "return_requests") {
+        await createNotification(
+          req.db,
+          "New return request",
+          `Return ${docs[0]?.return_request_id || ""} was submitted for order ${docs[0]?.order_number || "unknown order"}.`,
+          "/admin/returns"
+        );
       }
       return res.json({ data: docs.length === 1 ? docs[0] : docs, error: null });
     }

@@ -8,7 +8,8 @@
     "server": "node server/index.js",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:admin-smoke": "node scripts/admin-smoke.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.52",
